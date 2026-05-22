@@ -1,0 +1,114 @@
+/*
+ * 중립(placeholder) 스타일. 시각 표현은 Claude Design 몫(§8, §10).
+ * 여기서 고정하는 유일한 제약: 헥스/원시값은 등폭(monospace) — .mono (§8).
+ * 색/폰트/여백/레이아웃은 디자인 단계에서 자유롭게 교체 가능하도록 className 훅만 둠.
+ */
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: #1a1a1a;
+  background: #f5f5f5;
+  line-height: 1.5;
+}
+.app { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+.app__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+.app__headtext { flex: 1; min-width: 0; }
+.app__title { font-size: 20px; margin: 0 0 4px; }
+.app__subtitle { color: #666; font-size: 13px; margin: 0; }
+.langselect { display: flex; align-items: center; gap: 6px; flex: none; }
+.langselect select { min-width: auto; padding: 4px 8px; }
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-variant-ligatures: none;
+}
+
+.card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+.card__title { font-size: 14px; font-weight: 600; margin: 0 0 12px; }
+.muted { color: #777; }
+.small { font-size: 12px; }
+
+/* 업로드 */
+.uploads { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.drop {
+  border: 2px dashed #bbb; border-radius: 8px; padding: 20px; text-align: center;
+  cursor: pointer; background: #fafafa;
+}
+.drop--over { border-color: #555; background: #f0f0f0; }
+.drop--loaded { border-style: solid; border-color: #9bbf9b; background: #f3faf3; }
+.drop__role { font-weight: 700; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; }
+.drop__name { margin-top: 6px; word-break: break-all; }
+.drop__hint { color: #888; font-size: 12px; margin-top: 6px; }
+.colchips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.chip { font-size: 11px; padding: 1px 6px; border: 1px solid #ccc; border-radius: 10px; background: #fff; }
+
+/* 설정 */
+.field { margin-bottom: 14px; }
+.field__label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 6px; }
+select, button { font: inherit; }
+select { padding: 6px 8px; border: 1px solid #bbb; border-radius: 6px; min-width: 220px; }
+.toggles { display: flex; flex-wrap: wrap; gap: 6px; }
+.toggle {
+  border: 1px solid #bbb; border-radius: 6px; padding: 4px 10px; cursor: pointer; background: #fff; font-size: 12px;
+}
+.toggle--on { border-color: #4a7; background: #eef8ef; }
+.toggle--off { border-color: #c99; background: #fbf0f0; color: #944; text-decoration: line-through; }
+.toggle--pk { border-color: #88a; background: #eef; cursor: default; }
+.checkrow { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+
+.btn { padding: 9px 16px; border: 1px solid #444; border-radius: 6px; background: #222; color: #fff; cursor: pointer; }
+.btn--secondary { background: #fff; color: #222; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btnrow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+.error { color: #b00; background: #fdecec; border: 1px solid #f3b6b6; border-radius: 6px; padding: 8px 12px; font-size: 13px; }
+.warn { color: #8a6d00; background: #fff7e0; border: 1px solid #e8d48a; border-radius: 6px; padding: 8px 12px; font-size: 13px; }
+
+/* 판정 (§8-B) — 가장 강하게 인지. 디자인은 Claude Design이 강화 */
+.verdict { border-radius: 8px; padding: 20px; margin-bottom: 16px; border: 2px solid; }
+.verdict--pass { background: #eaf7ea; border-color: #4a7; }
+.verdict--fail { background: #fdecec; border-color: #c44; }
+.verdict__badge { font-size: 40px; font-weight: 800; letter-spacing: .05em; }
+.verdict--pass .verdict__badge { color: #2e7d32; }
+.verdict--fail .verdict__badge { color: #c62828; }
+.verdict__reason { font-size: 14px; margin-top: 4px; }
+.verdict__meta { font-size: 12px; color: #555; margin-top: 8px; }
+
+/* 집계 (§8-C) */
+.metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+.metric { border: 1px solid #ddd; border-radius: 6px; padding: 10px; text-align: center; background: #fff; }
+.metric__num { font-size: 22px; font-weight: 700; }
+.metric__label { font-size: 11px; color: #666; margin-top: 2px; }
+
+/* 상세 (§8-D) */
+.filters { display: flex; gap: 6px; margin-bottom: 12px; }
+.detail-row { border: 1px solid #e2e2e2; border-radius: 6px; margin-bottom: 6px; background: #fff; }
+.detail-row__head { display: flex; align-items: center; gap: 10px; padding: 8px 12px; cursor: pointer; }
+.detail-row__head--plain { cursor: default; }
+.badge { font-size: 11px; padding: 1px 8px; border-radius: 10px; white-space: nowrap; }
+.badge--match { background: #e7f6e7; color: #2e7d32; }
+.badge--mismatch { background: #fdeaea; color: #c62828; }
+.badge--only { background: #fff2da; color: #9a6b00; }
+.detail-row__key { font-weight: 600; }
+.detail-row__preview { color: #777; font-size: 12px; margin-left: auto; }
+.detail-row__body { border-top: 1px solid #eee; padding: 10px 12px; }
+
+.diffpair { display: grid; grid-template-columns: 140px 1fr; gap: 6px 12px; padding: 6px 0; border-bottom: 1px dashed #eee; }
+.diffpair__col { font-weight: 600; font-size: 12px; align-self: center; word-break: break-all; }
+.diffpair__sides { display: grid; gap: 4px; }
+.side { display: flex; gap: 8px; align-items: baseline; }
+.side__label { font-size: 10px; color: #888; width: 38px; flex: none; text-transform: uppercase; }
+.side__val { word-break: break-all; }
+.u { padding: 0 0.5px; }
+.u.diff { background: #ffd9d9; color: #900; border-radius: 2px; }
+.u.diff.residual { background: #ffcaca; outline: 1px dashed #c66; }
+.empty { color: #aaa; font-style: italic; }
+
+.render-note { font-size: 12px; color: #8a6d00; background: #fff7e0; border: 1px solid #e8d48a; border-radius: 6px; padding: 6px 10px; margin-bottom: 10px; }
+
+@media (max-width: 720px) {
+  .uploads { grid-template-columns: 1fr; }
+  .metrics { grid-template-columns: repeat(2, 1fr); }
+  .diffpair { grid-template-columns: 1fr; }
+}
