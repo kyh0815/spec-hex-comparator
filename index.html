@@ -465,13 +465,13 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 
 
 /* ── B · Verdict ───────────────────────────────────────────────── */
+/* 패널 유지, 채운 박스(pill)만 제거 — 색+아이콘+텍스트로 판정 표시 (사용자 요청) */
 .verdict {
-  position: relative;
   display: grid;
   grid-template-columns: auto 1fr auto;
   gap: 24px;
   align-items: center;
-  padding: 24px 28px;
+  padding: 22px 26px;
   border-radius: var(--r-lg);
   border: 1px solid;
   margin-bottom: 12px;
@@ -480,29 +480,22 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 }
 .verdict--pass { border-color: var(--pass-border); background: var(--pass-soft); }
 .verdict--fail { border-color: var(--fail-border); background: var(--fail-soft); }
-
 .verdict__badge {
   display: inline-flex;
-  flex-direction: row;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  min-width: 132px;
-  padding: 14px 22px;
-  border-radius: var(--r);
-  color: #fff;
+  gap: 9px;
   font-weight: 600;
-  font-size: 24px;
-  letter-spacing: 0.04em;
+  font-size: 26px;
+  letter-spacing: -0.01em;
   line-height: 1;
+  color: var(--ink);
 }
-.verdict--pass .verdict__badge { background: var(--pass); }
-.verdict--fail .verdict__badge { background: var(--fail); }
+.verdict--pass .verdict__badge { color: var(--pass); }
+.verdict--fail .verdict__badge { color: var(--fail); }
 .verdict__badge svg {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   display: block;
-  opacity: 0.92;
 }
 
 .verdict__reason {
