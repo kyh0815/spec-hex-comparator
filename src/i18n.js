@@ -96,6 +96,7 @@
       "screenE.subtitle": "전체 비교 결과를 CSV로 저장합니다. 상단 메타(판정·집계·제외 컬럼)와 row별 키·상태·다른 컬럼이 기록됩니다. (전수 — 렌더 상한과 무관)",
       "export.button": "CSV 리포트 내보내기",
       "back.button": "설정 다시 보기",
+      "restart.button": "새로 시작",
       "export.filenameLabel": "파일명:"
     },
 
@@ -179,6 +180,7 @@
       "screenE.subtitle": "全比較結果をCSVに保存します。上部メタ(判定・集計・除外カラム)と行ごとのキー・状態・差異カラムが記録されます。(全件 — 表示上限とは無関係)",
       "export.button": "CSVレポートを書き出す",
       "back.button": "設定に戻る",
+      "restart.button": "最初からやり直す",
       "export.filenameLabel": "ファイル名:"
     },
 
@@ -262,6 +264,7 @@
       "screenE.subtitle": "Saves the full comparison result as a CSV. Includes top-level meta (verdict, summary, excluded columns) and per-row key, status, and differing columns. (Full set — independent of the render cap.)",
       "export.button": "Export CSV report",
       "back.button": "Back to settings",
+      "restart.button": "Start over",
       "export.filenameLabel": "Filename:"
     }
   };

@@ -333,6 +333,7 @@
         <div class="btnrow">
           <button class="btn" onClick=${props.onExport}>${t("export.button")}</button>
           <button class="btn btn--secondary" onClick=${props.onBack}>${t("back.button")}</button>
+          <button class="btn btn--secondary" onClick=${props.onRestart}>${t("restart.button")}</button>
           <span class="small muted" style=${{ marginLeft: "6px" }}>${t("export.filenameLabel")} <span class="mono">${props.filename}</span></span>
         </div>
       </div>`;
@@ -434,7 +435,8 @@
           <${Detail} result=${result} byteMode=${byteMode} />
           <${ScreenE} result=${result} filename=${filename}
             onExport=${function () { exportCsv(result, filename); }}
-            onBack=${function () { setResult(null); }} />
+            onBack=${function () { setResult(null); }}
+            onRestart=${function () { reset(); window.scrollTo(0, 0); }} />
         </div>`;
     } else {
       var noCommon = asIs && toBe && commonCols.length === 0;
