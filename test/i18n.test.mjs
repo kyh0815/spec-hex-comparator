@@ -43,7 +43,7 @@ enKeys.forEach((k) => {
 
 // makeT: 보간 + 폴백
 const tk = I.makeT("ko");
-ok("makeT 보간", tk("config.section", { n: 7 }).includes("7"));
+ok("makeT 보간", tk("config.pkLabel", { guess: "ZZZ" }).includes("ZZZ"));
 ok("makeT 미존재 키는 키 자체 반환", I.makeT("ko")("__nope__") === "__nope__");
 ok("makeT 미지원 언어 → en 폴백", I.makeT("zz")("metrics.total") === I.STRINGS.en["metrics.total"]);
 

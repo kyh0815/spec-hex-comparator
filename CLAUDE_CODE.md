@@ -1,3 +1,65 @@
+# Claude Code — Hex Comparator UI Implementation Prompt
+
+> 이 파일 하나만 읽어도 작업할 수 있도록 만들었다. CSS 전문, 마크업 변경 사항, 시각 레퍼런스 경로를 모두 포함한다.
+
+---
+
+## 0. 너의 작업 (한 줄)
+
+`src/styles.css`를 §4의 CSS 전문으로 **통째로 교체**하고, `src/app.js`에 §5의 마크업 추가 두 가지를 반영한 뒤 빌드한다. **로직(`src/core.js`)·className 계약·테스트는 절대 손대지 않는다.**
+
+---
+
+## 1. 컨텍스트
+
+엔터프라이즈 마이그레이션 검증 도구(`spec-hex-comparator.md` §8). 메인프레임(As-Is) → 오픈시스템(To-Be) CSV를 byte-for-byte 비교해 **Pass / Fail**을 판정한다. 외부 요청 0인 폐쇄망용 단일 오프라인 `index.html`.
+
+기존 구조:
+- `src/core.js` — 로직 (테스트 47/47 통과, 손대지 않음)
+- `src/app.js` — UI 마크업, className hook 보유 (§5 두 군데만 수정)
+- `src/styles.css` — 본 핸드오프에서 **전부 교체**
+- `build.mjs` — 단일 `index.html`로 인라인 빌드
+
+---
+
+## 2. 절대 제약 (어기면 산출물 폐기)
+
+1. **`.mono` 등폭 폰트 유지** — 모든 헥스/원시값에 적용 (스펙 §2.1)
+2. **Pass/Fail 이중 인코딩** — 색만 의존 금지. 색 + ✓/× SVG + 텍스트 3중 인코딩 (스펙 §2.5)
+3. **외부 요청 0** — `styles.css`에 외부 URL 없음, 폰트는 시스템 스택, 아이콘은 인라인 SVG만 (스펙 §2.3)
+4. **로직/판정 의미/기능 변경 금지** — 시각 표현만 바꾼다 (스펙 §2.4)
+
+---
+
+## 3. ClassName 계약 (변경 없음 — 그대로 유지)
+
+```
+레이아웃    .app .app__title .app__subtitle .card .card__title .muted .small .mono
+업로드      .uploads .drop .drop--over .drop--loaded .drop__role .drop__name .drop__hint .colchips .chip
+설정        .field .field__label .toggles .toggle .toggle--on .toggle--off .toggle--pk .checkrow
+액션/메시지 .btn .btn--secondary .btnrow .error .warn .render-note
+판정(B)     .verdict .verdict--pass .verdict--fail .verdict__badge .verdict__reason .verdict__meta
+집계(C)     .metrics .metric .metric__num .metric__label
+상세(D)     .filters .detail-row .detail-row__head .detail-row__head--plain
+            .badge .badge--match .badge--mismatch .badge--only
+            .detail-row__key .detail-row__preview .detail-row__body
+diff(D)     .diffpair .diffpair__col .diffpair__sides .side .side__label .side__val
+            .u  .u.diff  .u.diff.residual  .empty
+```
+
+상태 modifier 의미:
+- `--over`(드래그 중) `--loaded`(파일 인식됨)
+- `.toggle--on`(검사 중) `.toggle--off`(제외됨) `.toggle--pk`(PK, 비활성)
+- `.badge--match/--mismatch/--only`(일치/불일치/한쪽만)
+- `.u.diff`(다른 유닛) `.u.diff.residual`(길이 차 잔여 유닛) `.empty`(빈 값 ∅)
+
+---
+
+## 4. `src/styles.css` 전문 (그대로 복사)
+
+기존 파일을 통째로 아래 내용으로 덮어쓴다.
+
+```css
 /* Hex Comparator — Linear-style minimal redesign.
  * Sentence case throughout. Decorative icons removed. Only PASS/FAIL
  * accessibility icons retained (color-blind dual-encoding mandate). */
@@ -851,45 +913,142 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   .detail-row__preview { display: none; }
   .diffpair__sides { grid-template-columns: 1fr; gap: 0; }
   .side:first-child { border-bottom: 1px solid var(--line); }
-  .app__header { flex-direction: column; gap: 4px; }
 }
 
-/* ── Header + language selector (i18n control — additive, not in §4) ──
- * 디자인 토큰만 사용해 기존 규칙과 시각적으로 일치시킴. */
-.app__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
-}
-.app__headtext { min-width: 0; }
-.langselect {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--ink-3);
-}
-.langselect select {
-  appearance: none;
-  -webkit-appearance: none;
-  height: 30px;
-  padding: 0 30px 0 10px;
-  border: 1px solid var(--line-2);
-  border-radius: var(--r-sm);
-  background: var(--surface);
-  color: var(--ink);
-  font-size: 12.5px;
-  cursor: pointer;
-  transition: border-color 0.12s, box-shadow 0.12s;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%23999' d='M0 0h10L5 6z'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-}
-.langselect select:hover { border-color: var(--line-3); }
-.langselect select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--focus-ring);
-}
+```
+
+---
+
+## 5. `src/app.js` 마크업 추가 (두 군데만)
+
+### 5.1 `.verdict__badge` 내부 SVG 아이콘 (**필수** — 색약 이중 인코딩)
+
+verdict 뱃지 렌더 부분을 다음과 같이 수정한다. Pass / Fail 모두 SVG가 텍스트 앞에 와야 한다.
+
+```html
+<!-- Pass -->
+<div class="verdict__badge">
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"
+       stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"
+       aria-hidden="true">
+    <path d="M3 8.5 L6.5 12 L13 4"/>
+  </svg>
+  Pass
+</div>
+
+<!-- Fail -->
+<div class="verdict__badge">
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"
+       stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"
+       aria-hidden="true">
+    <path d="M4 4 L12 12 M12 4 L4 12"/>
+  </svg>
+  Fail
+</div>
+```
+
+CSS에서 `.verdict__badge svg` 가 14×14 / `currentColor`(흰색)로 그린다.
+
+판정 텍스트는 **"Pass" / "Fail"** (sentence case)로 표기한다. `PASS`/`FAIL` (대문자)이었다면 바꾼다.
+
+### 5.2 `.metric`에 `data-value` 추가 (**선택** — 0값 회색 처리)
+
+메트릭이 0일 때 회색으로 강조 해제하려면 `data-value`를 출력한다.
+
+```html
+<div class="metric" data-kind="total" data-value="${total}">
+  <div class="metric__num">${total.toLocaleString('ko-KR')}</div>
+  <div class="metric__label">전체 row</div>
+</div>
+<div class="metric" data-kind="match" data-value="${match}">…</div>
+<div class="metric" data-kind="mismatch" data-value="${mismatch}">…</div>
+<div class="metric" data-kind="only-a" data-value="${onlyA}">…</div>
+<div class="metric" data-kind="only-b" data-value="${onlyB}">…</div>
+```
+
+라벨 텍스트는 다음과 같이 변경:
+- "전체" → **"전체 row"**
+- "AS-IS만" / "TO-BE만" → **"As-Is만 존재"** / **"To-Be만 존재"**
+
+### 5.3 (참고) 기타 sentence case 정리
+
+마크업에 직접 박혀 있는 대문자 라벨은 모두 sentence case로 바꾼다:
+- 서브타이틀의 `PASS / FAIL` → `Pass / Fail`
+- 드롭존 `.drop__role` — `AS-IS` / `TO-BE` → `As-Is` / `To-Be` (CSS가 더 이상 uppercase로 변환 안 함)
+- `.field__label` — 한국어 라벨이라면 그대로 유지
+
+---
+
+## 6. 시각 레퍼런스 (반드시 확인)
+
+같은 폴더의 `screenshots/` 안에 12장의 PNG가 있다. **각 상태가 어떻게 보여야 하는지 시각으로 확인**한 뒤 구현에 들어가라.
+
+| # | 파일 | 이 화면이 보여주는 것 |
+|---|------|------|
+| 01 | `screenshots/01-overview-fail.png` | 페이지 상단 — 타이틀(18px / 600), 서브타이틀, 화면 A 시작 |
+| 02 | `screenshots/02-screen-A-settings.png` | 화면 A 전체 — 드롭존, PK select, 토글, 액션 버튼 |
+| 03 | `screenshots/03-verdict-fail.png` | 화면 B — **Fail** 상태. 빨강 패널 + × 아이콘 + 사유 + 메타 |
+| 04 | `screenshots/04-detail-expanded-diff.png` | 화면 D — 불일치 row 펼침. 컬럼별 As-Is/To-Be 나란히, 헥스 하이라이트 |
+| 05 | `screenshots/05-detail-rows-other-states.png` | 화면 D — `only-a/b` row, render-note, 화면 E |
+| 06 | `screenshots/06-verdict-pass.png` | 화면 B — **Pass** 상태. 초록 패널 + ✓ 아이콘. 0 메트릭은 grey-out |
+| 07 | `screenshots/07-verdict-pass-with-exclusions.png` | Pass + 제외 컬럼. amber 인디케이터로 주의 환기 |
+| 08 | `screenshots/08-fail-pk-duplicate-warning.png` | PK 중복 경고(`.warn`) + 펼친 row의 byte hex diff |
+| 09 | `screenshots/09-input-error.png` | `.error` 메시지 + 액션 버튼 disabled |
+| 10 | `screenshots/10-drop-empty.png` | 드롭존 빈 상태 (점선 보더 + 안내문) |
+| 11 | `screenshots/11-drop-drag-over.png` | 드롭존 드래그 오버 (실선 액센트 보더 + soft 배경) |
+| 12 | `screenshots/12-detail-residual-and-empty.png` | 길이 차 잔여(`.u.diff.residual` 점선 밑줄) + 빈 값(`.empty` ∅) |
+
+**작업 순서**:
+1. 위 스크린샷을 모두 본다 (Read 도구로 하나씩 열어 본다)
+2. §4 CSS를 `src/styles.css`에 통째로 덮어쓴다
+3. §5.1의 SVG 마크업을 `src/app.js`의 verdict 렌더 자리에 추가한다
+4. §5.2의 `data-value` 어트리뷰트를 `.metric`에 추가한다 (선택)
+5. §5.3의 sentence case 정리를 `src/app.js` 텍스트에 반영한다
+6. `build.mjs` 실행 → 단일 `index.html`로 인라인
+7. 빌드된 페이지를 열어서 §6의 스크린샷과 비교 검증
+
+---
+
+## 7. 디자인 토큰 요약 (참고)
+
+전체는 §4 CSS 상단 `:root` 블록에 있다. 주요 의미만:
+
+- **표면**: `--bg`(페이지), `--bg-sunken`(필터/패시브), `--surface`(카드), `--surface-2`(펼친 본문)
+- **잉크**: `--ink` → `--ink-4` 4단계 + `--line`/`--line-2`/`--line-3` 보더 3단계
+- **액센트**: `--accent`(violet-blue, PK·focus·drag-over)
+- **시맨틱**: pass / fail / warn — 각각 `--xxx`, `--xxx-2`, `--xxx-soft`, `--xxx-border` 4단계
+- **diff**: `--diff-bg/fg`(amber, 다른 유닛), `--diff-residual-bg/fg`(purple, 길이 차 잔여)
+- **타이포**: 시스템 sans + ui-monospace. base 13.5px / 1.55 / letter-spacing -0.005em
+- **radius**: 4/6/8/10px
+- **shadow**: 거의 안 씀. `--shadow-xs`(카드) / `--shadow-sm`(hover) 두 단계만
+
+---
+
+## 8. 자주 하는 실수 — 미리 차단
+
+- ❌ `build.mjs`나 `src/core.js` 수정
+- ❌ className 변경/추가/삭제
+- ❌ verdict 뱃지에서 SVG 빼기 (이중 인코딩 위반)
+- ❌ 외부 URL/폰트/이미지 추가
+- ❌ `.mono`를 일반 폰트로 바꾸기
+- ❌ "PASS"/"FAIL" 대문자로 되돌리기
+
+---
+
+## 9. 검증 체크리스트
+
+빌드 후 다음을 확인한다:
+
+- [ ] `screenshots/06-verdict-pass.png`와 동일하게 Pass 뱃지가 보인다 (초록 + ✓ + "Pass")
+- [ ] `screenshots/03-verdict-fail.png`와 동일하게 Fail 뱃지가 보인다 (빨강 + × + "Fail")
+- [ ] 5개 메트릭이 1줄 그리드로 정렬되고, 0값은 회색으로 표시된다
+- [ ] 불일치 row를 클릭하면 펼쳐지고 컬럼별 As-Is/To-Be hex가 나란히 보인다
+- [ ] hex의 다른 부분이 amber 배경으로 하이라이트된다
+- [ ] 길이 차로 한쪽에만 남은 잔여 바이트는 purple + 점선 underline
+- [ ] 빈 값은 `∅ empty` 점선 박스로 표시된다
+- [ ] 드롭존 드래그 오버 시 실선 액센트 보더 + soft 배경
+- [ ] PK 중복이 있으면 amber `.warn` 박스가 메트릭 아래에 나타난다
+- [ ] 입력 오류 시 `.error` 박스 + 액션 버튼 disabled
+- [ ] 페이지 어디서도 외부 URL 요청이 발생하지 않는다 (네트워크 탭 확인)
+
+끝.
