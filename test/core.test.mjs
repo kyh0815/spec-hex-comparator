@@ -152,6 +152,50 @@ eq("한쪽만 헥스 → 바이트 모드 아님", dOneHex.byteMode, false);
 // ── 상수 ──
 eq("DIFF_SEP = |", C.DIFF_SEP, "|");
 
+// ── 배치: pairByName (파일명 일치) ──
+eq("pairByName 매칭/미매칭",
+  C.pairByName(["고객.csv", "주문.csv", "상품.csv"], ["주문.csv", "고객.csv", "결제.csv"]),
+  { pairs: ["고객.csv", "주문.csv"], onlyAsIs: ["상품.csv"], onlyToBe: ["결제.csv"] });
+eq("pairByName 전부 매칭", C.pairByName(["a", "b"], ["b", "a"]), { pairs: ["a", "b"], onlyAsIs: [], onlyToBe: [] });
+eq("pairByName As-Is 순서 유지", C.pairByName(["z", "a"], ["a", "z"]).pairs, ["z", "a"]);
+
+// ── 배치: batchVerdict (전체 판정) ──
+var P = { verdict: "PASS", summary: { total: 3, matched: 3, mismatched: 0, onlyAsIs: 0, onlyToBe: 0 } };
+var F = { verdict: "FAIL", summary: { total: 4, matched: 2, mismatched: 1, onlyAsIs: 1, onlyToBe: 0 } };
+eq("batch 전부 PASS + 미매칭0 → PASS", C.batchVerdict([P, P], 0).verdict, "PASS");
+eq("batch 한 쌍 FAIL → FAIL", C.batchVerdict([P, F], 0).verdict, "FAIL");
+eq("batch 전부 PASS인데 미매칭 있음 → FAIL", C.batchVerdict([P, P], 1).verdict, "FAIL");
+eq("batch passed/failed 카운트", [C.batchVerdict([P, F, P], 0).passed, C.batchVerdict([P, F, P], 0).failed], [2, 1]);
+eq("batch 집계 합산", C.batchVerdict([P, F], 0).agg,
+  { total: 7, matched: 5, mismatched: 1, onlyAsIs: 1, onlyToBe: 0 });
+eq("batch tables/unmatched", [C.batchVerdict([P], 2).tables, C.batchVerdict([P], 2).unmatched], [1, 2]);
+
+// ── 자동 키 / 복합키 ──
+eq("autoKey 이름 힌트(id) 단일", C.autoKey([{ id: "1", a: "x" }, { id: "2", a: "x" }], ["id", "a"]), ["id"]);
+eq("autoKey 첫 컬럼 유일 → 단일", C.autoKey([{ c1: "1", c2: "x" }, { c1: "2", c2: "x" }], ["c1", "c2"]), ["c1"]);
+eq("autoKey 첫 컬럼 중복 → 복합 확장",
+  C.autoKey([{ br: "01", ac: "1" }, { br: "01", ac: "2" }, { br: "02", ac: "1" }], ["br", "ac"]), ["br", "ac"]);
+
+var comp = C.compareData({
+  asIsRows: [{ br: "01", ac: "1", v: "A" }, { br: "01", ac: "2", v: "B" }, { br: "02", ac: "1", v: "C" }],
+  toBeRows: [{ br: "01", ac: "1", v: "A" }, { br: "01", ac: "2", v: "Z" }, { br: "02", ac: "1", v: "C" }],
+  pk: ["br", "ac"], inspectCols: ["v"]
+});
+eq("복합키 매칭/불일치", [comp.summary.matched, comp.summary.mismatched], [2, 1]);
+eq("복합키 row.key 결합(01 | 2)", comp.rows.filter((x) => x.status === "MISMATCH")[0].key, "01 | 2");
+eq("복합키 result.pk 배열", comp.pk, ["br", "ac"]);
+eq("단일 pk 문자열 → 배열화", C.compareData({ asIsRows: [{ id: "1", v: "A" }], toBeRows: [{ id: "1", v: "A" }], pk: "id", inspectCols: ["v"] }).pk, ["id"]);
+eq("단일키 row.key = 값 그대로(구분자 없음)", C.compareData({ asIsRows: [{ id: "7", v: "A" }], toBeRows: [{ id: "7", v: "A" }], pk: "id", inspectCols: ["v"] }).rows[0].key, "7");
+
+// ── 차이 칼럼 집계 (diffColumns) ──
+eq("diffColumns 집계(r1=v만)", r1.diffColumns, ["v"]);
+eq("diffColumns 다중·순서 유지", C.compareData({
+  asIsRows: [{ id: "1", a: "X", b: "Y" }, { id: "2", a: "P", b: "Q" }],
+  toBeRows: [{ id: "1", a: "X2", b: "Y" }, { id: "2", a: "P", b: "Q2" }],
+  pk: "id", inspectCols: ["a", "b"]
+}).diffColumns, ["a", "b"]);
+eq("diffColumns 전부 일치 → 빈 배열", C.compareData({ asIsRows: [{ id: "1", v: "A" }], toBeRows: [{ id: "1", v: "A" }], pk: "id", inspectCols: ["v"] }).diffColumns, []);
+
 // ── 산출물 무결성: index.html 외부 요청 0 (정적 검사) ──
 const idxPath = join(root, "index.html");
 if (existsSync(idxPath)) {

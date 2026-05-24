@@ -1,8 +1,9 @@
 # As-Is / To-Be 데이터 비교 검증 도구
 
 메인프레임(As-Is) → 오픈 시스템(To-Be) 마이그레이션 검증의 결과 책정 도구.
-CSV 2개를 **byte-for-byte(String 동일성)** 비교하여 PASS/FAIL을 판정한다.
-스펙: [spec-hex-comparator.md](spec-hex-comparator.md).
+CSV를 **byte-for-byte(String 동일성)** 비교하여 PASS/FAIL을 판정한다.
+**여러 테이블 쌍을 한 번에** 비교하고 (요약) 대시보드 + (세부) row 증거로 본다.
+스펙: [spec-hex-comparator.md](spec-hex-comparator.md) · 배치 부록: [spec-batch-addendum.md](spec-batch-addendum.md).
 
 ## 산출물
 
@@ -16,6 +17,15 @@ CSV 2개를 **byte-for-byte(String 동일성)** 비교하여 PASS/FAIL을 판정
 - 제외 컬럼은 판정에 영향 없으나 결과·리포트에 항상 명시.
 - 바이트/문자 diff는 **표시 전용** — 판정과 무관.
 - UI는 **한국어/일본어/영어** 3개 언어 (브라우저 언어 자동감지). 단, 비교·판정·CSV 리포트는 언어 무관.
+
+## 다건(배치) 비교
+
+- As-Is/To-Be **폴더 통째 선택**(webkitdirectory) 또는 파일 멀티선택/드래그 → **파일명 일치**로 자동 페어링.
+- **키는 자동 도출**(autoKey): PK 선택 UI 없음. 단일키는 물론 **복합키(여러 컬럼)도 자동** — 앞 컬럼부터 행이 유일해질 때까지 확장.
+- 쌍마다 단건 엔진(`compareData`)을 호출해 비교. **전체 판정**: 모든 쌍 PASS & 미매칭 0 → PASS, 그 외 FAIL.
+- **요약 대시보드**(테이블별 판정·건수) → 행 클릭 → **세부**(row별 일치/불일치 + 펼쳐서 값·바이트 diff 증거).
+- 드릴인 고급에서 테이블별 키·제외 컬럼 override 가능. 배치 요약 CSV 내보내기.
+- 상세 기본 필터 **전체**(일치도 노출). 자세한 규칙: [spec-batch-addendum.md](spec-batch-addendum.md).
 
 ## 구조
 

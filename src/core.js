@@ -43,14 +43,23 @@
     return v === null || v === undefined || v === "";
   }
 
-  // pk값 → row 인덱싱. 빈 PK는 스킵, 중복은 첫 row 채택 + 중복키 수집 (§5-1, §9)
+  // 키 구분자 (복합키 표시·매칭용). 단일키는 구분자 없이 값 그대로.
+  var KEY_SEP = " | ";
+  function asCols(pk) { return Array.isArray(pk) ? pk : [pk]; }
+  function keyOf(row, pkCols) {
+    return pkCols.map(function (c) { var v = row ? row[c] : undefined; return v == null ? "" : String(v); }).join(KEY_SEP);
+  }
+  function emptyComposite(row, pkCols) {
+    return pkCols.every(function (c) { return isEmptyKey(row ? row[c] : undefined); });
+  }
+
+  // pk(단일 또는 복합 배열) → row 인덱싱. 빈 키는 스킵, 중복은 첫 row 채택 + 중복키 수집 (§5-1, §9)
   function indexByPk(rows, pk) {
-    var map = new Map();
-    var dupes = [];
-    var seen = new Set();
+    var pkCols = asCols(pk);
+    var map = new Map(), dupes = [], seen = new Set();
     (rows || []).forEach(function (row) {
-      var key = row ? row[pk] : undefined;
-      if (isEmptyKey(key)) return; // 빈 PK row 스킵
+      if (!row || emptyComposite(row, pkCols)) return; // 빈 키 row 스킵
+      var key = keyOf(row, pkCols);
       if (map.has(key)) {
         if (!seen.has(key)) { dupes.push(key); seen.add(key); } // 중복 키 1회만 수집
         return; // 첫 row만 사용
@@ -58,6 +67,35 @@
       map.set(key, row);
     });
     return { map: map, dupes: dupes };
+  }
+
+  // 주어진 키 컬럼들로 행이 유일한가
+  function isUnique(rows, keyCols) {
+    if (!keyCols || !keyCols.length) return false;
+    var seen = new Set();
+    rows = rows || [];
+    for (var i = 0; i < rows.length; i++) {
+      if (emptyComposite(rows[i], keyCols)) continue;
+      var k = keyOf(rows[i], keyCols);
+      if (seen.has(k)) return false;
+      seen.add(k);
+    }
+    return true;
+  }
+
+  // 자동 키 도출: 이름 힌트(단일) → 유일하면 채택. 아니면 앞 컬럼부터 유일해질 때까지 확장(복합키). (§4 자동 키)
+  function autoKey(rows, columns) {
+    columns = columns || [];
+    if (!columns.length) return [];
+    rows = rows || [];
+    var g = guessPk(columns);
+    if (g && isUnique(rows, [g])) return [g];
+    var key = [];
+    for (var i = 0; i < columns.length; i++) {
+      key.push(columns[i]);
+      if (isUnique(rows, key)) return key.slice();
+    }
+    return columns.slice(); // 전부 써도 유일하지 않으면 전체 반환(상위에서 경고)
   }
 
   // PASS ⟺ 불일치 0 + 누락 0 + 초과 0. 그 외 전부 FAIL. (§6)
@@ -113,6 +151,11 @@
       }
     });
 
+    // 차이 컬럼(어느 검사 컬럼이 한 건이라도 달랐나) — inspectCols 순서 유지
+    var diffColSet = {};
+    rows.forEach(function (r) { r.diffCols.forEach(function (c) { diffColSet[c] = 1; }); });
+    var diffColumns = inspectCols.filter(function (c) { return diffColSet[c]; });
+
     var summary = {
       total: rows.length,
       matched: matched,
@@ -131,11 +174,12 @@
       summary: summary,
       reasons: reasons,
       rows: rows,
+      diffColumns: diffColumns,
       dupesAsIs: aIdx.dupes,
       dupesToBe: bIdx.dupes,
       inspectedCols: inspectCols.slice(),
       excludedCols: (opts.excludedCols || []).slice(),
-      pk: pk,
+      pk: asCols(pk),
       // 상세 보기에서 값 조회용 (첫 row 채택본과 동일)
       asIsIndex: aMap,
       toBeIndex: bMap
@@ -187,6 +231,43 @@
     return { byteMode: byteMode, a: ra, b: rb };
   }
 
+  // ── 배치(다건) 헬퍼 (순수) — 부록 spec-batch-addendum.md ──
+
+  // 파일명 정확히 일치로 As-Is/To-Be 짝지음. As-Is 순서 유지.
+  function pairByName(asIsNames, toBeNames) {
+    var aSet = new Set(asIsNames || []);
+    var bSet = new Set(toBeNames || []);
+    var pairs = [], onlyAsIs = [], onlyToBe = [];
+    (asIsNames || []).forEach(function (n) { if (bSet.has(n)) pairs.push(n); else onlyAsIs.push(n); });
+    (toBeNames || []).forEach(function (n) { if (!aSet.has(n)) onlyToBe.push(n); });
+    return { pairs: pairs, onlyAsIs: onlyAsIs, onlyToBe: onlyToBe };
+  }
+
+  // 전체 판정: 모든 쌍 PASS AND 미매칭 0 → PASS. (§4)
+  // pairResults: compareData 결과 객체 배열. unmatchedCount: 짝 없는 파일 수.
+  function batchVerdict(pairResults, unmatchedCount) {
+    pairResults = pairResults || [];
+    unmatchedCount = unmatchedCount || 0;
+    var passed = 0, failed = 0;
+    var agg = { total: 0, matched: 0, mismatched: 0, onlyAsIs: 0, onlyToBe: 0 };
+    pairResults.forEach(function (r) {
+      if (r.verdict === "PASS") passed++; else failed++;
+      agg.total += r.summary.total;
+      agg.matched += r.summary.matched;
+      agg.mismatched += r.summary.mismatched;
+      agg.onlyAsIs += r.summary.onlyAsIs;
+      agg.onlyToBe += r.summary.onlyToBe;
+    });
+    return {
+      verdict: (failed === 0 && unmatchedCount === 0) ? "PASS" : "FAIL",
+      tables: pairResults.length,
+      passed: passed,
+      failed: failed,
+      unmatched: unmatchedCount,
+      agg: agg
+    };
+  }
+
   return {
     DIFF_SEP: DIFF_SEP,
     commonColumns: commonColumns,
@@ -196,6 +277,10 @@
     computeVerdict: computeVerdict,
     isHex: isHex,
     splitUnits: splitUnits,
-    diffUnits: diffUnits
+    diffUnits: diffUnits,
+    keyOf: keyOf,
+    autoKey: autoKey,
+    pairByName: pairByName,
+    batchVerdict: batchVerdict
   };
 });
