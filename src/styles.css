@@ -61,7 +61,7 @@
 html, body { margin: 0; padding: 0; }
 body {
   font-family: var(--sans);
-  font-size: 13.5px;
+  font-size: 15px;
   line-height: 1.55;
   color: var(--ink);
   background: var(--bg);
@@ -79,16 +79,16 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   letter-spacing: 0;
 }
 .muted { color: var(--ink-3); }
-.small { font-size: 12px; line-height: 1.5; }
+.small { font-size: 13px; line-height: 1.5; }
 
 /* ── App shell ─────────────────────────────────────────────────── */
 .app {
-  max-width: 980px;
+  max-width: 1080px;
   margin: 0 auto;
-  padding: 48px 28px 120px;
+  padding: 52px 32px 120px;
 }
 .app__title {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   letter-spacing: -0.015em;
   margin: 0 0 6px;
@@ -97,11 +97,47 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 .app__subtitle {
   color: var(--ink-3);
   margin: 0 0 36px;
-  font-size: 13px;
-  max-width: 640px;
+  font-size: 14.5px;
+  max-width: 700px;
   line-height: 1.55;
 }
 .app__subtitle .mono { color: var(--ink-2); font-weight: 500; }
+
+/* Header + language selector (i18n 컨트롤 — 디자인엔 없는 추가분, 토큰 일치) */
+.app__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+.app__headtext { min-width: 0; }
+.langselect {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.langselect select {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 32px;
+  padding: 0 30px 0 10px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: border-color 0.12s, box-shadow 0.12s;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%23999' d='M0 0h10L5 6z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+.langselect select:hover { border-color: var(--line-3); }
+.langselect select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--focus-ring); }
+@media (max-width: 720px) { .app__header { flex-direction: column; gap: 8px; } }
 
 /* ── Card ──────────────────────────────────────────────────────── */
 .card {
@@ -113,7 +149,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   box-shadow: var(--shadow-xs);
 }
 .card__title {
-  font-size: 13px;
+  font-size: 14.5px;
   font-weight: 600;
   letter-spacing: -0.005em;
   color: var(--ink);
@@ -123,7 +159,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 .card > .card__subtitle {
   color: var(--ink-3);
   margin: 0 0 20px;
-  font-size: 12.5px;
+  font-size: 13.5px;
 }
 
 /* ── Buttons ───────────────────────────────────────────────────── */
@@ -133,13 +169,13 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   align-items: center;
   justify-content: center;
   gap: 6px;
-  height: 32px;
-  padding: 0 14px;
+  height: 36px;
+  padding: 0 16px;
   border: 1px solid var(--ink);
   border-radius: var(--r-sm);
   background: var(--ink);
   color: #fff;
-  font-size: 13px;
+  font-size: 14.5px;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.12s, border-color 0.12s, opacity 0.12s;
@@ -165,9 +201,9 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 10px 14px;
+  padding: 12px 16px;
   border-radius: var(--r-sm);
-  font-size: 13px;
+  font-size: 14.5px;
   line-height: 1.5;
   border: 1px solid;
 }
@@ -209,7 +245,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   color: var(--ink-2);
   background: var(--bg-sunken);
   border-color: var(--line);
-  font-size: 12.5px;
+  font-size: 13.5px;
 }
 .render-note::before {
   content: "";
@@ -258,7 +294,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   box-shadow: var(--shadow-xs);
 }
 .drop__role {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--ink-3);
   letter-spacing: -0.005em;
@@ -266,7 +302,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 .drop--loaded .drop__role { color: var(--ink-2); }
 .drop__name {
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 14.5px;
   font-weight: 500;
   color: var(--ink);
   word-break: break-all;
@@ -291,7 +327,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 }
 .drop__hint {
   color: var(--ink-3);
-  font-size: 12px;
+  font-size: 13px;
   margin-top: auto;
 }
 .drop__hint .mono { color: var(--ink-2); }
@@ -301,8 +337,8 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   display: inline-flex;
   align-items: center;
   font-family: var(--mono);
-  font-size: 11px;
-  padding: 2px 7px 1px;
+  font-size: 12px;
+  padding: 3px 8px 2px;
   background: var(--bg-sunken);
   border: 1px solid var(--line);
   border-radius: 4px;
@@ -318,7 +354,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   margin-top: 18px;
 }
 .field__label {
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 500;
   color: var(--ink-2);
   letter-spacing: -0.005em;
@@ -328,14 +364,14 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 .field input[type="text"] {
   appearance: none;
   -webkit-appearance: none;
-  height: 34px;
-  padding: 0 32px 0 12px;
+  height: 38px;
+  padding: 0 34px 0 14px;
   border: 1px solid var(--line-2);
   border-radius: var(--r-sm);
   background: var(--surface);
   color: var(--ink);
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 14.5px;
   cursor: pointer;
   transition: border-color 0.12s, box-shadow 0.12s;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%23999' d='M0 0h10L5 6z'/></svg>");
@@ -357,8 +393,8 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   align-items: center;
   gap: 6px;
   font-family: var(--mono);
-  font-size: 12px;
-  padding: 4px 10px 3px;
+  font-size: 13px;
+  padding: 5px 11px 4px;
   border-radius: var(--r-sm);
   border: 1px solid;
   cursor: pointer;
@@ -406,7 +442,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 }
 .toggle--pk::after {
   content: "PK";
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   margin-left: 4px;
   padding: 1px 5px 0;
@@ -423,7 +459,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   padding: 4px 0;
   cursor: pointer;
   user-select: none;
-  font-size: 13px;
+  font-size: 14.5px;
   color: var(--ink-2);
 }
 .checkrow input[type="checkbox"] {
@@ -457,13 +493,13 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 
 
 /* ── B · Verdict ───────────────────────────────────────────────── */
-/* 패널 유지, 채운 박스(pill)만 제거 — 색+아이콘+텍스트로 판정 표시 (사용자 요청) */
 .verdict {
+  position: relative;
   display: grid;
   grid-template-columns: auto 1fr auto;
   gap: 24px;
   align-items: center;
-  padding: 22px 26px;
+  padding: 24px 28px;
   border-radius: var(--r-lg);
   border: 1px solid;
   margin-bottom: 12px;
@@ -472,26 +508,33 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 }
 .verdict--pass { border-color: var(--pass-border); background: var(--pass-soft); }
 .verdict--fail { border-color: var(--fail-border); background: var(--fail-soft); }
+
 .verdict__badge {
   display: inline-flex;
+  flex-direction: row;
   align-items: center;
-  gap: 9px;
+  justify-content: center;
+  gap: 10px;
+  min-width: 132px;
+  padding: 14px 22px;
+  border-radius: var(--r);
+  color: #fff;
   font-weight: 600;
   font-size: 26px;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.04em;
   line-height: 1;
-  color: var(--ink);
 }
-.verdict--pass .verdict__badge { color: var(--pass); }
-.verdict--fail .verdict__badge { color: var(--fail); }
+.verdict--pass .verdict__badge { background: var(--pass); }
+.verdict--fail .verdict__badge { background: var(--fail); }
 .verdict__badge svg {
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   display: block;
+  opacity: 0.92;
 }
 
 .verdict__reason {
-  font-size: 16px;
+  font-size: 17.5px;
   font-weight: 500;
   letter-spacing: -0.01em;
   color: var(--ink);
@@ -500,7 +543,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 .verdict__reason b {
   font-weight: 600;
   font-family: var(--mono);
-  font-size: 15px;
+  font-size: 16.5px;
   color: inherit;
   padding: 0 1px;
 }
@@ -509,7 +552,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   margin-top: 6px;
   font-weight: 400;
   color: var(--warn-2);
-  font-size: 12.5px;
+  font-size: 13.5px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -524,16 +567,16 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 }
 
 .verdict__meta {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--ink-2);
   text-align: right;
   line-height: 1.5;
-  min-width: 180px;
+  min-width: 200px;
   margin: 0;
 }
 .verdict__meta .mono { color: var(--ink); font-weight: 500; }
 .verdict__meta dt {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ink-3);
   margin-top: 6px;
   font-weight: 400;
@@ -563,7 +606,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 .metric:last-child { border-right: 0; }
 .metric__num {
   font-family: var(--mono);
-  font-size: 24px;
+  font-size: 27px;
   font-weight: 500;
   letter-spacing: -0.02em;
   line-height: 1.1;
@@ -571,7 +614,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   font-variant-numeric: tabular-nums;
 }
 .metric__label {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 400;
   color: var(--ink-3);
   letter-spacing: -0.005em;
@@ -598,9 +641,9 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   appearance: none;
   border: 0;
   background: transparent;
-  padding: 5px 12px;
+  padding: 6px 14px;
   border-radius: 4px;
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 500;
   color: var(--ink-3);
   cursor: pointer;
@@ -618,7 +661,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 }
 .filters button .count {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   padding: 0 5px;
   background: transparent;
@@ -650,13 +693,13 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 
 .detail-row__head {
   display: grid;
-  grid-template-columns: 130px 80px 1fr 16px;
+  grid-template-columns: 140px 88px 1fr 16px;
   align-items: center;
   gap: 14px;
-  padding: 9px 14px 9px 12px;
+  padding: 10px 14px 10px 12px;
   cursor: pointer;
   user-select: none;
-  font-size: 12.5px;
+  font-size: 13.5px;
 }
 .detail-row__head:hover { background: var(--bg-sunken); }
 .detail-row__head--plain { cursor: default; }
@@ -679,7 +722,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 
 .detail-row__key {
   font-family: var(--mono);
-  font-size: 12.5px;
+  font-size: 14px;
   color: var(--ink);
   font-weight: 500;
   overflow: hidden;
@@ -688,7 +731,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 }
 .detail-row__preview {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13px;
   color: var(--ink-3);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -709,9 +752,9 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 500;
-  padding: 2px 8px 1px;
+  padding: 3px 9px 2px;
   border-radius: 4px;
   border: 1px solid transparent;
   font-family: var(--sans);
@@ -754,18 +797,32 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 7px 12px;
+  padding: 8px 14px;
   background: var(--bg-sunken);
   border-bottom: 1px solid var(--line);
-  font-size: 12px;
+  font-size: 13px;
   color: var(--ink-3);
 }
 .diffpair__col .mono {
-  font-size: 12px;
+  font-size: 13.5px;
   font-weight: 500;
   color: var(--ink);
 }
 .diffpair__col .badge { margin-left: auto; }
+
+/* Per-column diff state — subtly tints the header so match/only rows
+ * read distinct from mismatch ones at a glance, even before reading the
+ * column values. The actual side__val styling stays neutral. */
+.diffpair[data-state="match"] .diffpair__col {
+  background: var(--pass-soft);
+  color: var(--pass-2);
+}
+.diffpair[data-state="match"] .diffpair__col .mono { color: var(--pass-2); }
+.diffpair[data-state="only"] .diffpair__col {
+  background: var(--warn-soft);
+  color: var(--warn-2);
+}
+.diffpair[data-state="only"] .diffpair__col .mono { color: var(--warn-2); }
 
 .diffpair__sides {
   display: grid;
@@ -782,7 +839,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   min-width: 0;
 }
 .side__label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--ink-3);
   letter-spacing: -0.005em;
@@ -792,7 +849,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 
 .side__val {
   font-family: var(--mono);
-  font-size: 12.5px;
+  font-size: 13.5px;
   line-height: 1.55;
   color: var(--ink);
   word-break: break-all;
@@ -827,11 +884,478 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   border-radius: 3px;
   font-style: normal;
   letter-spacing: 0.02em;
-  font-size: 11.5px;
+  font-size: 12.5px;
 }
 .empty::before { content: "∅ "; color: var(--ink-2); font-weight: 600; }
 
+/* ── Per-table drilldown ───────────────────────────────────────── */
+/* Nested record-level view inside an expanded batch row. Shares the
+ * .filters and .detail-row component vocabulary from single-table mode. */
+
+.drilldown {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.drilldown__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 2px 0 8px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+.drilldown__title {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink-2);
+  letter-spacing: -0.005em;
+}
+.drilldown__title .mono {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.drilldown__sep {
+  color: var(--ink-4);
+  font-weight: 400;
+  font-size: 12px;
+}
+.drilldown__meta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.drilldown__meta .mono {
+  font-size: 13.5px;
+  color: var(--ink);
+  font-weight: 500;
+}
+.drilldown__arrow {
+  color: var(--ink-4);
+  font-size: 13px;
+  padding: 0 1px;
+}
+.drilldown__metaLbl {
+  font-family: var(--sans);
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-4);
+  margin-left: 4px;
+  font-weight: 500;
+}
+.drilldown .filters {
+  margin: 2px 0 6px;
+}
+.drilldown__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+/* When a drilldown sits inside a flat-table cell, the surrounding td is
+ * already padded — kill the inner padding so contents land flush. */
+.batch-table__drilldown-inner .drilldown {
+  padding: 0;
+}
+/* Inside a drilldown the nested detail-rows should look slightly subdued
+ * relative to the top-level table row that triggered them. */
+.drilldown .detail-row {
+  border-color: var(--line);
+  background: var(--surface);
+}
+.drilldown .detail-row__head {
+  font-size: 13px;
+}
+.drilldown .detail-row__key {
+  font-size: 13.5px;
+}
+
+/* ── Batch dashboard — flat table layout ───────────────────────── */
+
+.batch-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  margin: 0;
+}
+.batch-table thead th {
+  text-align: left;
+  padding: 8px 12px 10px;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  white-space: nowrap;
+  user-select: none;
+}
+.batch-table thead th.num {
+  text-align: right;
+}
+.batch-table thead th[data-sortable="1"] {
+  cursor: pointer;
+  transition: color 0.1s;
+}
+.batch-table thead th[data-sortable="1"]:hover { color: var(--ink); }
+.batch-table thead th[data-sortable="1"] > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.batch-table thead th[data-sortable="1"] > span::after {
+  content: "";
+  display: inline-block;
+  width: 0; height: 0;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-top: 4px solid var(--ink-4);
+  opacity: 0.45;
+  transition: opacity 0.1s, border-color 0.1s;
+}
+.batch-table thead th[aria-sort="ascending"] > span::after {
+  border-top: 0;
+  border-bottom: 4px solid var(--ink);
+  opacity: 1;
+}
+.batch-table thead th[aria-sort="descending"] > span::after {
+  border-top: 4px solid var(--ink);
+  opacity: 1;
+}
+
+.batch-table tbody tr {
+  transition: background 0.08s;
+}
+.batch-table__row td {
+  padding: 12px 12px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 13.5px;
+  color: var(--ink);
+  vertical-align: middle;
+  letter-spacing: 0;
+}
+.batch-table__row td.num { text-align: right; }
+.batch-table__row td[data-zero="1"] { color: var(--ink-4); }
+
+/* Left-edge state strip on first cell — no card chrome needed */
+.batch-table__row td:first-child {
+  position: relative;
+  padding-left: 16px;
+}
+.batch-table__row[data-state="match"]    td:first-child::before,
+.batch-table__row[data-state="mismatch"] td:first-child::before,
+.batch-table__row[data-state="only-a"]   td:first-child::before,
+.batch-table__row[data-state="only-b"]   td:first-child::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: transparent;
+}
+.batch-table__row[data-state="match"]    td:first-child::before { background: var(--pass); }
+.batch-table__row[data-state="mismatch"] td:first-child::before { background: var(--fail); }
+.batch-table__row[data-state="only-a"]   td:first-child::before,
+.batch-table__row[data-state="only-b"]   td:first-child::before { background: var(--warn); }
+
+.batch-table__row--expandable { cursor: pointer; }
+.batch-table__row--expandable:hover {
+  background: var(--bg-sunken);
+}
+.batch-table__row[data-open="true"] {
+  background: var(--bg-sunken);
+}
+.batch-table__row[data-open="true"] td { border-bottom-color: var(--line-2); }
+
+/* State-tinted numeric cells */
+.batch-table .cell-mismatch:not([data-zero="1"]) { color: var(--fail-2); font-weight: 600; }
+.batch-table .cell-miss:not([data-zero="1"])     { color: var(--warn-2); font-weight: 600; }
+.batch-table .cell-extra:not([data-zero="1"])    { color: var(--warn-2); font-weight: 600; }
+.batch-table .cell-delta:not([data-zero="1"])    { color: var(--fail-2); font-weight: 600; }
+.batch-table .cell-match { color: var(--ink); }
+.batch-table[data-state] { /* unused */ }
+.batch-table__row[data-state="match"] .cell-match { color: var(--pass-2); }
+
+.batch-table .cell-name { min-width: 160px; }
+.batch-table .cell-name .mono {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.batch-table .cell-badge { width: 72px; }
+
+.batch-table .cell-excl {
+  max-width: 220px;
+}
+.batch-table .cell-excl .excl-empty { color: var(--ink-4); padding-left: 2px; }
+.batch-table .cell-excl .excl-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+.batch-table .cell-excl .chip {
+  font-size: 11.5px;
+  padding: 1px 7px 0;
+  color: var(--ink-3);
+  background: var(--bg-sunken);
+  border-color: var(--line);
+}
+
+/* Drill-down row — full-width slot under expanded row */
+.batch-table__drilldown > td {
+  padding: 0;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line);
+}
+.batch-table__drilldown[data-state="mismatch"] > td {
+  box-shadow: inset 2px 0 0 var(--fail);
+}
+.batch-table__drilldown-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 16px 16px;
+}
+
+/* Hide the legacy card legend when in table layout (legend lives in thead instead) */
+.batch-board:has(.batch-table) .batch-board__legend { display: none; }
+
+@media (max-width: 1000px) {
+  .batch-table { font-size: 13px; }
+  .batch-table__row td { padding: 10px 8px; font-size: 13px; }
+  .batch-table thead th { padding: 8px 8px 9px; font-size: 10.5px; }
+}
+@media (max-width: 900px) {
+  /* Collapse table to two-line cards on narrow screens */
+  .batch-table, .batch-table thead, .batch-table tbody,
+  .batch-table tr, .batch-table th, .batch-table td { display: block; }
+  .batch-table thead { display: none; }
+  .batch-table__row { padding: 12px 14px; border-bottom: 1px solid var(--line); }
+  .batch-table__row td { padding: 2px 0; border: 0; display: inline-block; }
+  .batch-table__row td.num::before {
+    content: attr(data-label) " ";
+    color: var(--ink-3);
+    font-family: var(--sans);
+    font-size: 11px;
+    margin-right: 4px;
+  }
+}
+
+/* ── Batch dashboard ───────────────────────────────────────────── */
+/* Multi-table comparison summary. Each .detail-row is one table.
+ * The data line below the head is promoted to a column-aligned grid
+ * so all rows align across columns — sortable-feeling header above. */
+
+.batch-board {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  /* shared column grid — applied to both legend + every row stats line.
+   * keep template-columns identical on both sides for visual alignment. */
+  --bb-grid:
+    minmax(0, 56px)       /* col-count   */
+    minmax(0, 56px)       /* diff-cols   */
+    minmax(0, 92px)       /* As-Is rows  */
+    minmax(0, 92px)       /* To-Be rows  */
+    minmax(140px, 1.2fr); /* excluded    */
+}
+
+.batch-board__legend {
+  display: grid;
+  grid-template-columns: var(--bb-grid);
+  gap: 14px;
+  align-items: end;
+  padding: 4px 14px 8px;
+  margin: 0 0 2px 16px; /* indent to align under the .detail-row__stats which sits inside the row */
+  border-bottom: 1px solid var(--line);
+}
+.batch-board__legend > span {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.batch-board__legend .num { justify-content: flex-end; text-align: right; }
+.batch-board__legend .sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.1s;
+}
+.batch-board__legend .sortable:hover { color: var(--ink); }
+.batch-board__legend .sortable::after {
+  content: "";
+  display: inline-block;
+  width: 0; height: 0;
+  margin-left: 2px;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-top: 4px solid var(--ink-4);
+  opacity: 0.55;
+}
+.batch-board__legend [aria-sort="ascending"]::after {
+  border-top: 0;
+  border-bottom: 4px solid var(--ink);
+  opacity: 1;
+}
+.batch-board__legend [aria-sort="descending"]::after {
+  border-top: 4px solid var(--ink);
+  opacity: 1;
+}
+
+/* Batch rows reuse .detail-row but its head changes layout. */
+.detail-row--batch .detail-row__head {
+  /* table-name · badge · row-dashcounts · chevron */
+  grid-template-columns: minmax(0, 1.4fr) 80px minmax(0, 1.6fr) 16px;
+  padding: 11px 14px 4px 12px;
+}
+.detail-row--batch .detail-row__head .detail-row__preview {
+  font-size: 13px;
+}
+
+/* Dashcount preview — match/mismatch/missing/extra in one slug,
+ * each segment colored by state and dimmed to ink-4 when zero. */
+.dashcount {
+  display: inline-flex;
+  align-items: baseline;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0;
+}
+.dashcount__seg {
+  padding: 0 7px;
+  font-weight: 500;
+}
+.dashcount__seg:first-child { padding-left: 0; }
+.dashcount__seg + .dashcount__seg { border-left: 1px solid var(--line-2); }
+.dashcount__seg.match    { color: var(--pass-2); }
+.dashcount__seg.mismatch { color: var(--fail-2); }
+.dashcount__seg.miss     { color: var(--warn-2); }
+.dashcount__seg.extra    { color: var(--warn-2); }
+.dashcount__seg[data-zero="1"] { color: var(--ink-4); font-weight: 400; }
+.dashcount__lbl {
+  font-family: var(--sans);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-4);
+  margin-right: 4px;
+  font-weight: 500;
+}
+
+/* Per-row stats grid — sits below the head, indented under the table-name column. */
+.detail-row__stats {
+  display: grid;
+  grid-template-columns: var(--bb-grid);
+  gap: 14px;
+  align-items: center;
+  padding: 4px 14px 10px;
+  margin-left: 16px;
+  border-top: 1px dashed var(--line);
+  margin-top: 4px;
+}
+.detail-row__stat {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  color: var(--ink);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0;
+}
+.detail-row__stat[data-zero="1"]  { color: var(--ink-4); }
+.detail-row__stat[data-state="warn"] {
+  color: var(--fail-2);
+  font-weight: 600;
+}
+.detail-row__stat--excl {
+  text-align: left;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.detail-row__stat--excl[data-empty="1"] { color: var(--ink-4); }
+.detail-row__stat--excl .chip {
+  font-size: 11.5px;
+  padding: 1px 6px 0;
+  background: var(--bg-sunken);
+  color: var(--ink-3);
+  border-color: var(--line);
+}
+
+/* compact bar: at a glance ratio of match : mismatch+missing+extra for the row.
+ * Optional decorative element — keeps PASS rows visually quiet, surfaces FAIL ratio. */
+.detail-row--batch .detail-row[data-state] .detail-row__head .detail-row__preview {
+  /* keep colors handled by .dashcount */
+}
+
+/* PASS rows: slightly subdued numeric block so failures pop. */
+.detail-row--batch[data-state="match"] .detail-row__stat {
+  color: var(--ink-2);
+}
+.detail-row--batch[data-state="match"] .detail-row__stat[data-zero="1"] {
+  color: var(--ink-4);
+}
+
+/* unpaired files notice — under the board */
+.batch-board__unpaired {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.batch-board__unpaired .warn {
+  margin: 0;
+  align-items: flex-start;
+}
+.batch-board__unpaired .warn .small {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--mono);
+  color: var(--warn-2);
+  opacity: 0.85;
+}
+
+/* Sticky legend feel: shadow on first row to anchor */
+.batch-board__legend + .detail-row { margin-top: 2px; }
+
 /* ── Responsive ────────────────────────────────────────────────── */
+@media (max-width: 1000px) {
+  .batch-board {
+    --bb-grid: minmax(0, 48px) minmax(0, 48px) minmax(0, 78px) minmax(0, 78px) minmax(110px, 1fr);
+  }
+  .batch-board__legend > span { font-size: 10.5px; letter-spacing: 0.04em; }
+  .detail-row__stat { font-size: 13px; }
+}
+
 @media (max-width: 900px) {
   .uploads { grid-template-columns: 1fr; }
   .uploads > .drop:nth-of-type(2) { grid-column: 1; grid-row: 2; }
@@ -844,45 +1368,73 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   .detail-row__preview { display: none; }
   .diffpair__sides { grid-template-columns: 1fr; gap: 0; }
   .side:first-child { border-bottom: 1px solid var(--line); }
-  .app__header { flex-direction: column; gap: 4px; }
+  .batch-board__legend { display: none; }
+  .detail-row--batch .detail-row__head { grid-template-columns: 1fr auto 16px; }
+  .detail-row__stats {
+    grid-template-columns: 1fr 1fr;
+    margin-left: 0;
+    padding: 8px 12px 10px;
+  }
+  .detail-row__stat { text-align: left; }
+  .detail-row__stat--excl { grid-column: 1 / -1; }
+  .batch-board__unpaired { grid-template-columns: 1fr; }
 }
 
-/* ── Header + language selector (i18n control — additive, not in §4) ──
- * 디자인 토큰만 사용해 기존 규칙과 시각적으로 일치시킴. */
-.app__header {
+/* ── 배치 판정 배너 — 메타를 가로 stat 바로 (콤팩트, 디자인 .verdict 오버라이드) ── */
+.verdict { grid-template-columns: auto 1fr; }
+.verdict__statbar {
+  grid-column: 1 / -1;
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  margin-top: 14px;
 }
-.app__headtext { min-width: 0; }
-.langselect {
-  flex: none;
+.verdict__stat-item {
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
   gap: 6px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--ink-3);
 }
-.langselect select {
-  appearance: none;
-  -webkit-appearance: none;
-  height: 30px;
-  padding: 0 30px 0 10px;
-  border: 1px solid var(--line-2);
-  border-radius: var(--r-sm);
-  background: var(--surface);
+.verdict__stat-item b {
+  font-family: var(--mono);
+  font-size: 17px;
+  font-weight: 600;
   color: var(--ink);
-  font-size: 12.5px;
-  cursor: pointer;
-  transition: border-color 0.12s, box-shadow 0.12s;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%23999' d='M0 0h10L5 6z'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
+  letter-spacing: -0.01em;
 }
-.langselect select:hover { border-color: var(--line-3); }
-.langselect select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--focus-ring);
+@media (max-width: 720px) { .verdict { grid-template-columns: 1fr; } }
+
+/* ── 헤더 호버 툴팁 (th 자체 ::after/::before — span::after는 정렬 화살표라 회피) ── */
+.batch-table thead th[data-tip] { position: relative; }
+.batch-table thead th[data-tip]:not([data-sortable]) { cursor: help; }
+.batch-table thead th[data-tip]:hover::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  white-space: nowrap;
+  background: var(--ink);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: -0.005em;
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow);
+  pointer-events: none;
+}
+.batch-table thead th[data-tip]:hover::before {
+  content: "";
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom-color: var(--ink);
+  z-index: 30;
+  pointer-events: none;
 }
