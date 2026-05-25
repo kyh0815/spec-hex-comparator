@@ -531,8 +531,9 @@
   }
 
   // ── CSV 내보내기 (영어 enum/키 고정 — 다운스트림 툴링 호환) ──
-  // 본문: key / status / diff_columns + 검사 칼럼마다 `COL[As-Is]`, `COL[To-Be]` 두 열로
-  // 실제 값을 노출 → Excel에서 한 줄로 전체 칼럼 값과 차이를 동시에 확인.
+  // 본문: key / status / diff_columns + 한 번이라도 차이가 난 칼럼(`r.diffColumns`)만
+  // As-Is/To-Be 페어로 노출. 전건 일치 칼럼은 본문에서 제외해 폭 절감.
+  // 검사 대상 전체 칼럼은 상단 meta의 `inspected_columns`에서 그대로 추적 가능.
   function exportPairCsv(r, filename) {
     var meta = [
       ["verdict", r.verdict], ["total", r.summary.total], ["matched", r.summary.matched], ["mismatched", r.summary.mismatched],
@@ -540,13 +541,13 @@
       ["pk", (r.pk || []).join(C.DIFF_SEP)], ["inspected_columns", r.inspectedCols.join(C.DIFF_SEP)], ["excluded_columns", r.excludedCols.join(C.DIFF_SEP)],
       ["dupe_keys_as_is", r.dupesAsIs.join(C.DIFF_SEP)], ["dupe_keys_to_be", r.dupesToBe.join(C.DIFF_SEP)]
     ];
-    var inspected = r.inspectedCols;
+    var bodyCols = r.diffColumns || []; // 슬림 Wide: diff가 한 번이라도 발생한 칼럼만
     var headers = ["key", "status", "diff_columns"];
-    inspected.forEach(function (c) { headers.push(c + "[As-Is]", c + "[To-Be]"); });
+    bodyCols.forEach(function (c) { headers.push(c + "[As-Is]", c + "[To-Be]"); });
     var rows = r.rows.map(function (row) {
       var aRow = r.asIsIndex.get(row.key), bRow = r.toBeIndex.get(row.key);
       var rec = { key: row.key, status: row.status, diff_columns: row.diffCols.join(C.DIFF_SEP) };
-      inspected.forEach(function (c) {
+      bodyCols.forEach(function (c) {
         rec[c + "[As-Is]"] = aRow && aRow[c] != null ? String(aRow[c]) : "";
         rec[c + "[To-Be]"] = bRow && bRow[c] != null ? String(bRow[c]) : "";
       });
