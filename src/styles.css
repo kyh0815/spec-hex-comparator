@@ -721,13 +721,32 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 .detail-row__head--plain { grid-template-columns: 130px 80px 1fr; }
 
 .detail-row__key {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.15;
+}
+/* Eyebrow: PK 칼럼명을 값 위에 작은 라벨로 (10이 무슨 숫자인지 명확히) */
+.detail-row__keyLbl {
+  font-family: var(--sans);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-4);
+  font-weight: 500;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.detail-row__keyVal {
   font-family: var(--mono);
   font-size: 14px;
   color: var(--ink);
   font-weight: 500;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .detail-row__preview {
   font-family: var(--mono);
@@ -975,7 +994,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 .drilldown .detail-row__head {
   font-size: 13px;
 }
-.drilldown .detail-row__key {
+.drilldown .detail-row__keyVal {
   font-size: 13.5px;
 }
 
@@ -1438,3 +1457,18 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   z-index: 30;
   pointer-events: none;
 }
+
+/* ── 펼침 어포던스: 행 좌측 셰브런 + 드릴다운 헤더의 닫기 버튼 ── */
+.batch-table__chev {
+  display: inline-block;
+  width: 1em;
+  margin-right: 6px;
+  color: var(--ink-3);
+  font-size: 11px;
+  transition: color 120ms ease;
+  user-select: none;
+}
+.batch-table__row--expandable:hover .batch-table__chev,
+.batch-table__row[data-open="true"] .batch-table__chev { color: var(--ink); }
+
+.drilldown__close { white-space: nowrap; }

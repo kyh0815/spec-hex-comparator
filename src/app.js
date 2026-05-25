@@ -179,7 +179,10 @@
     return html`
       <div class="detail-row" data-state=${STATE_MAP[row.status]} data-open=${open ? "true" : "false"}>
         <div class=${"detail-row__head" + (expandable ? "" : " detail-row__head--plain")} onClick=${expandable ? function () { setOpen(!open); } : null}>
-          <span class="detail-row__key">${row.key}</span>
+          <span class="detail-row__key">
+            <span class="detail-row__keyLbl">${(r.pk || []).join(" | ")}</span>
+            <span class="detail-row__keyVal mono">${row.key}</span>
+          </span>
           <span class="badge ${badge.cls}">${t(badge.key)}</span>
           <span class="detail-row__preview">${preview}</span>
         </div>
@@ -192,7 +195,7 @@
   // ── 인라인 드릴다운 (레코드 상세: PK별 레코드 목록 → 펼치면 칼럼값을 리스트로) ──
   function Drilldown(props) {
     var t = useT();
-    var pair = props.pair, byteMode = props.byteMode;
+    var pair = props.pair, byteMode = props.byteMode, onClose = props.onClose;
     var r = pair.result;
     var fl = useState("all"); var filter = fl[0], setFilter = fl[1];
     var counts = {
@@ -218,6 +221,9 @@
             <span class="drilldown__metaLbl">${t("drilldown.metaLbl")}</span>
             <button class="btn btn--secondary" style=${{ height: "28px", padding: "0 10px", fontSize: "12.5px" }}
               onClick=${function () { exportPairCsv(r, "compare_" + baseName(pair.name) + "_" + ts() + ".csv"); }}>${t("export.button")}</button>
+            ${onClose ? html`<button class="btn btn--secondary drilldown__close" type="button" aria-label=${t("drilldown.close")}
+              style=${{ height: "28px", padding: "0 10px", fontSize: "12.5px" }}
+              onClick=${function () { onClose(); }}>× ${t("drilldown.close")}</button>` : null}
           </span>
         </header>
         <div class="filters" role="tablist">
@@ -266,6 +272,21 @@
     return html`<div class="metrics">${cells.map(function (c) { return html`<div key=${c[0]} class="metric" data-kind=${c[0]} data-value=${c[2]}><div class="metric__num">${fmt(c[2])}</div><div class="metric__label">${t(c[1])}</div></div>`; })}</div>`;
   }
 
+  // 펼침/닫힘으로 페이지 길이가 변할 때, 클릭한 행이 같은 viewport 위치에 머무르게
+  // 잡아두는 헬퍼. 두 번 rAF로 React 재렌더 + 레이아웃 완료를 기다린 뒤 delta만큼 보정.
+  function anchorScroll(el, mutate) {
+    if (!el) { mutate(); return; }
+    var before = el.getBoundingClientRect().top;
+    mutate();
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        var after = el.getBoundingClientRect().top;
+        var delta = after - before;
+        if (delta) window.scrollBy(0, delta);
+      });
+    });
+  }
+
   // ── 정렬 테이블 (한 테이블 = 한 행, 클릭 시 인라인 드릴다운) ──
   function BatchTable(props) {
     var t = useT();
@@ -298,9 +319,11 @@
             var open = openName === p.name;
             return html`<${Fragment} key=${p.name}>
               <tr data-state=${pass ? "match" : "mismatch"} data-open=${open ? "true" : "false"}
+                  data-row-name=${p.name}
+                  aria-expanded=${expandable ? (open ? "true" : "false") : null}
                   class=${expandable ? "batch-table__row batch-table__row--expandable" : "batch-table__row"}
-                  onClick=${expandable ? function () { setOpenName(open ? null : p.name); } : null}>
-                <td class="cell-name"><span class="mono">${p.name}</span></td>
+                  onClick=${expandable ? function (e) { anchorScroll(e.currentTarget, function () { setOpenName(open ? null : p.name); }); } : null}>
+                <td class="cell-name">${expandable ? html`<span class="batch-table__chev" aria-hidden="true">${open ? "▾" : "▸"}</span>` : null}<span class="mono">${p.name}</span></td>
                 <td class="cell-badge"><span class="badge ${pass ? "badge--match" : "badge--mismatch"}">${pass ? "Pass" : "Fail"}</span></td>
                 <td class="num cell-match" data-zero=${p.match === 0 ? "1" : "0"}>${fmt(p.match)}</td>
                 <td class="num cell-mismatch" data-zero=${p.mismatch === 0 ? "1" : "0"}>${fmt(p.mismatch)}</td>
@@ -316,7 +339,7 @@
                     : (p.excluded.length === 0 ? html`<span class="excl-empty">—</span>` : html`<span class="excl-chips">${p.excluded.map(function (c) { return html`<span key=${c} class="chip">${c}</span>`; })}</span>`)}
                 </td>
               </tr>
-              ${open && expandable ? html`<tr class="batch-table__drilldown" data-state=${pass ? "match" : "mismatch"}><td colSpan="11"><div class="batch-table__drilldown-inner"><${Drilldown} pair=${p.pair} byteMode=${byteMode} /></div></td></tr>` : null}
+              ${open && expandable ? html`<tr class="batch-table__drilldown" data-state=${pass ? "match" : "mismatch"}><td colSpan="11"><div class="batch-table__drilldown-inner"><${Drilldown} pair=${p.pair} byteMode=${byteMode} onClose=${function () { anchorScroll(document.querySelector('tr[data-row-name="' + (window.CSS && CSS.escape ? CSS.escape(p.name) : p.name.replace(/"/g, '\\"')) + '"]'), function () { setOpenName(null); }); }} /></div></td></tr>` : null}
             <//>`;
           })}
         </tbody>
@@ -385,24 +408,71 @@
     var rows = r.rows.map(function (row) { return { key: row.key, status: row.status, diff_columns: row.diffCols.join(C.DIFF_SEP) }; });
     download(Papa.unparse(meta, { header: false }) + "\r\n\r\n" + Papa.unparse(rows, { columns: ["key", "status", "diff_columns"] }), filename);
   }
-  function exportBatchCsv(batch, filename) {
+  // 실무자가 Excel/메모장에서 한눈에 읽도록 설계한 사람-친화 리포트(3 섹션 · 언어 따름):
+  //   1) 상단 요약(생성일시·전체 판정·누적 레코드)  2) 짝 없는 파일  3) 테이블별 결과(테이블명 맨 왼쪽)
+  function exportBatchCsv(t, batch, filename) {
     var s = batch.summary;
-    var meta = [
-      ["batch_verdict", s.verdict], ["tables", s.tables], ["passed", s.passed], ["failed", s.failed], ["unmatched", s.unmatched],
-      ["total_rows", s.agg.total], ["matched_rows", s.agg.matched], ["mismatched_rows", s.agg.mismatched],
-      ["missing_in_tobe_rows", s.agg.onlyAsIs], ["extra_in_tobe_rows", s.agg.onlyToBe],
-      ["unmatched_as_is", batch.onlyAsIs.join(C.DIFF_SEP)], ["unmatched_to_be", batch.onlyToBe.join(C.DIFF_SEP)]
+    function fmtTs() {
+      var d = new Date(); function p(n) { return String(n).padStart(2, "0"); }
+      return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+    }
+    var verdictLabel = s.verdict === "PASS" ? "Pass" : "Fail";
+    var verdictSummary = verdictLabel + " — " +
+      t("batchVerdict.metaTables") + " " + s.tables +
+      " (" + t("batch.metaPassed") + " " + s.passed +
+      " · " + t("batch.metaFailed") + " " + s.failed +
+      (s.unmatched ? " · " + t("batch.metaUnmatched") + " " + s.unmatched : "") + ")";
+    var rowsSummary = s.agg.total +
+      " (" + t("metrics.matched") + " " + s.agg.matched +
+      " · " + t("metrics.mismatched") + " " + s.agg.mismatched +
+      " · " + t("metrics.onlyAsIs") + " " + s.agg.onlyAsIs +
+      " · " + t("metrics.onlyToBe") + " " + s.agg.onlyToBe + ")";
+
+    // 섹션 1 — 요약
+    var sections = [
+      [t("csv.title")],
+      [""],
+      [t("csv.generatedAt"), fmtTs()],
+      [t("csv.verdictLabel"), verdictSummary],
+      [t("csv.rowsLabel"), rowsSummary]
     ];
-    var rows = batch.pairs.map(function (p) {
-      var r = p.result;
-      return {
-        table: p.name, verdict: r.verdict, total: r.summary.total, matched: r.summary.matched, mismatched: r.summary.mismatched,
-        missing_in_tobe: r.summary.onlyAsIs, extra_in_tobe: r.summary.onlyToBe, columns: p.common.length, diff_columns: (r.diffColumns || []).length,
-        as_is_records: p.aCount, to_be_records: p.bCount, pk: (r.pk || []).join(C.DIFF_SEP), excluded_columns: (r.excludedCols || []).join(C.DIFF_SEP)
-      };
+
+    // 섹션 2 — 짝 없는 파일 (있을 때만)
+    var unmatchedRows = [].concat(
+      batch.onlyAsIs.map(function (n) { return [n, t("metrics.onlyAsIs")]; }),
+      batch.onlyToBe.map(function (n) { return [n, t("metrics.onlyToBe")]; })
+    );
+    if (unmatchedRows.length) {
+      sections.push([""], [t("csv.unmatchedSection")], [t("csv.fileColumn"), t("csv.sideColumn")]);
+      unmatchedRows.forEach(function (r) { sections.push(r); });
+    }
+
+    // 섹션 3 — 테이블별 결과 (테이블명 맨 왼쪽)
+    sections.push([""], [t("csv.tablesSection")], [
+      t("csv.colTable"), t("csv.colVerdict"),
+      t("csv.colTotal"), t("csv.colMatch"), t("csv.colMismatch"), t("csv.colMiss"), t("csv.colExtra"),
+      t("csv.colCols"), t("csv.colDiffCols"), t("csv.colDiffList"),
+      t("csv.colPk"), t("csv.colExcluded"),
+      t("csv.colACount"), t("csv.colBCount")
+    ]);
+    // 실패가 먼저, 그 안에서는 알파벳 순 — 실무자가 위에서부터 문제 테이블을 바로 확인.
+    var orderedPairs = batch.pairs.slice().sort(function (a, b) {
+      var fa = a.result.verdict === "FAIL" ? 0 : 1, fb = b.result.verdict === "FAIL" ? 0 : 1;
+      if (fa !== fb) return fa - fb;
+      return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
     });
-    var cols = ["table", "verdict", "total", "matched", "mismatched", "missing_in_tobe", "extra_in_tobe", "columns", "diff_columns", "as_is_records", "to_be_records", "pk", "excluded_columns"];
-    download(Papa.unparse(meta, { header: false }) + "\r\n\r\n" + Papa.unparse(rows, { columns: cols }), filename);
+    orderedPairs.forEach(function (p) {
+      var r = p.result;
+      sections.push([
+        p.name, r.verdict === "PASS" ? "Pass" : "Fail",
+        r.summary.total, r.summary.matched, r.summary.mismatched, r.summary.onlyAsIs, r.summary.onlyToBe,
+        p.common.length, (r.diffColumns || []).length, (r.diffColumns || []).join(" | "),
+        (r.pk || []).join(" | "), (r.excludedCols || []).join(" | "),
+        p.aCount, p.bCount
+      ]);
+    });
+
+    download(Papa.unparse(sections, { header: false }), filename);
   }
 
   // ── 배치 계산 (순수) ──
@@ -490,7 +560,7 @@
           ${header}
           <div class="btnrow" style=${{ marginBottom: "16px" }}>
             <button class="btn btn--secondary" onClick=${function () { reset(); window.scrollTo(0, 0); }}>${t("restart.button")}</button>
-            <button class="btn" onClick=${function () { exportBatchCsv(batch, "batch_compare_" + ts() + ".csv"); }}>${t("export.batchButton")}</button>
+            <button class="btn" onClick=${function () { exportBatchCsv(t, batch, "batch_summary_" + ts() + ".csv"); }}>${t("export.batchButton")}</button>
           </div>
           <${BatchVerdict} batch=${batch} />
           <${BatchMetrics} batch=${batch} />
