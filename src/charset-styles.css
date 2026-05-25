@@ -192,7 +192,44 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
   border: 1px solid var(--line);
   border-radius: var(--r);
   min-height: 320px;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
 }
+/* Active panel — left side in text mode. Resting state: visually identical
+ * to base panel. The hierarchy comes from the readonly side being gently
+ * recessed (below), not from the active side being loud. Accent appears
+ * only on actual focus, top-tier SaaS pattern (Linear/Stripe). */
+.panel--active:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+/* Readonly panel — visually identical to active. Only the textarea
+ * itself is non-editable (readonly attribute); no recessed styling. */
+
+/* Swap (⇄) button — quiet icon button. */
+.swap-btn {
+  appearance: none;
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+  color: var(--ink-3);
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background-color 120ms ease;
+  padding: 0;
+  flex-shrink: 0;
+  margin-left: 6px;
+}
+.swap-btn:hover {
+  color: var(--ink);
+  border-color: var(--line-3);
+  background: var(--bg-sunken);
+}
+.swap-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .panel__head {
   display: flex;
   align-items: center;
@@ -331,10 +368,12 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
 
 /* ── Drop zones (file/folder modes) ──────────────────────────── */
 .drop {
+  display: block;
+  width: 100%;
   border: 1.5px dashed var(--line-3);
   border-radius: var(--r);
   background: var(--surface-2);
-  padding: 36px 20px;
+  padding: 48px 20px;
   text-align: center;
   cursor: pointer;
   transition: border-color 120ms ease, background-color 120ms ease;
@@ -344,7 +383,47 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
 .drop__hint { color: var(--ink-3); font-size: 13px; }
 .drop input[type="file"] { display: none; }
 
-/* ── File table ──────────────────────────────────────────────── */
+/* ── Options bar (folder mode) ───────────────────────────────── */
+.optsbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.optsbar__spacer { flex: 1 1 auto; }
+
+/* ── File-mode info bar (post-upload) ────────────────────────── */
+.fileinfo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--surface-2);
+  margin-bottom: 12px;
+}
+.fileinfo__name {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.fileinfo__name b { font-weight: 600; color: var(--ink); }
+.fileinfo__meta { color: var(--ink-3); font-size: 12px; margin-left: 8px; }
+
+/* ── File table (folder mode) ────────────────────────────────── */
+.tablewrap {
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  overflow: hidden;
+  background: var(--surface);
+}
 .filetable {
   width: 100%;
   border-collapse: collapse;
@@ -352,17 +431,20 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
 }
 .filetable th, .filetable td {
   text-align: left;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--line);
   vertical-align: middle;
 }
+.filetable tbody tr:last-child td { border-bottom: 0; }
 .filetable th {
   font-weight: 600;
   font-size: 12px;
   color: var(--ink-3);
   background: var(--surface-2);
+  position: sticky; top: 0;
 }
 .filetable td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.filetable td.actions { text-align: right; }
 .filetable .badge {
   display: inline-block;
   padding: 2px 8px;

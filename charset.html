@@ -200,7 +200,44 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
   border: 1px solid var(--line);
   border-radius: var(--r);
   min-height: 320px;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
 }
+/* Active panel — left side in text mode. Resting state: visually identical
+ * to base panel. The hierarchy comes from the readonly side being gently
+ * recessed (below), not from the active side being loud. Accent appears
+ * only on actual focus, top-tier SaaS pattern (Linear/Stripe). */
+.panel--active:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+/* Readonly panel — visually identical to active. Only the textarea
+ * itself is non-editable (readonly attribute); no recessed styling. */
+
+/* Swap (⇄) button — quiet icon button. */
+.swap-btn {
+  appearance: none;
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+  color: var(--ink-3);
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background-color 120ms ease;
+  padding: 0;
+  flex-shrink: 0;
+  margin-left: 6px;
+}
+.swap-btn:hover {
+  color: var(--ink);
+  border-color: var(--line-3);
+  background: var(--bg-sunken);
+}
+.swap-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .panel__head {
   display: flex;
   align-items: center;
@@ -339,10 +376,12 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
 
 /* ── Drop zones (file/folder modes) ──────────────────────────── */
 .drop {
+  display: block;
+  width: 100%;
   border: 1.5px dashed var(--line-3);
   border-radius: var(--r);
   background: var(--surface-2);
-  padding: 36px 20px;
+  padding: 48px 20px;
   text-align: center;
   cursor: pointer;
   transition: border-color 120ms ease, background-color 120ms ease;
@@ -352,7 +391,47 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
 .drop__hint { color: var(--ink-3); font-size: 13px; }
 .drop input[type="file"] { display: none; }
 
-/* ── File table ──────────────────────────────────────────────── */
+/* ── Options bar (folder mode) ───────────────────────────────── */
+.optsbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.optsbar__spacer { flex: 1 1 auto; }
+
+/* ── File-mode info bar (post-upload) ────────────────────────── */
+.fileinfo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--surface-2);
+  margin-bottom: 12px;
+}
+.fileinfo__name {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.fileinfo__name b { font-weight: 600; color: var(--ink); }
+.fileinfo__meta { color: var(--ink-3); font-size: 12px; margin-left: 8px; }
+
+/* ── File table (folder mode) ────────────────────────────────── */
+.tablewrap {
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  overflow: hidden;
+  background: var(--surface);
+}
 .filetable {
   width: 100%;
   border-collapse: collapse;
@@ -360,17 +439,20 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
 }
 .filetable th, .filetable td {
   text-align: left;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--line);
   vertical-align: middle;
 }
+.filetable tbody tr:last-child td { border-bottom: 0; }
 .filetable th {
   font-weight: 600;
   font-size: 12px;
   color: var(--ink-3);
   background: var(--surface-2);
+  position: sticky; top: 0;
 }
 .filetable td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.filetable td.actions { text-align: right; }
 .filetable .badge {
   display: inline-block;
   padding: 2px 8px;
@@ -528,6 +610,16 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
       "mode.file": "파일",
       "mode.folder": "폴더",
 
+      "subMode.encode": "텍스트 → 바이트",
+      "subMode.decode": "바이트 → 텍스트",
+
+      "field.interpretAs": "파일 해석 방식",
+      "interpret.binary": "Binary (그대로)",
+      "interpret.hex": "Hex 텍스트",
+      "interpret.dec": "10진 텍스트",
+      "interpret.bin": "2진 텍스트",
+      "interpret.base64": "Base64 텍스트",
+
       "panel.text": "텍스트",
       "panel.bytes": "바이트",
       "panel.input": "입력",
@@ -602,6 +694,16 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
       "mode.file": "ファイル",
       "mode.folder": "フォルダ",
 
+      "subMode.encode": "テキスト → バイト",
+      "subMode.decode": "バイト → テキスト",
+
+      "field.interpretAs": "ファイル解釈",
+      "interpret.binary": "Binary (そのまま)",
+      "interpret.hex": "Hex テキスト",
+      "interpret.dec": "10進 テキスト",
+      "interpret.bin": "2進 テキスト",
+      "interpret.base64": "Base64 テキスト",
+
       "panel.text": "テキスト",
       "panel.bytes": "バイト",
       "panel.input": "入力",
@@ -675,6 +777,16 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
       "mode.text": "Text",
       "mode.file": "File",
       "mode.folder": "Folder",
+
+      "subMode.encode": "Text → Bytes",
+      "subMode.decode": "Bytes → Text",
+
+      "field.interpretAs": "Interpret file as",
+      "interpret.binary": "Binary (raw)",
+      "interpret.hex": "Hex text",
+      "interpret.dec": "Decimal text",
+      "interpret.bin": "Binary text",
+      "interpret.base64": "Base64 text",
 
       "panel.text": "Text",
       "panel.bytes": "Bytes",
@@ -1022,6 +1134,18 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
     return concatBytes(records.concat([cdBuf, eocd]));
   }
 
+  // ── Interpret raw file bytes ─────────────────────────────────
+  // When `interpretAs` is "binary", the file's raw bytes are the bytes
+  // to decode. For "hex"/"dec"/"bin"/"base64", the file content is
+  // treated as ASCII/UTF-8 text describing bytes; we parse that text
+  // into the actual bytes (e.g. a .txt with "82 B1 82 F1" → [0x82,0xB1,…]).
+  function interpretFileBytes(rawBytes, interpretAs) {
+    if (!rawBytes) return null;
+    if (interpretAs === "binary" || !interpretAs) return rawBytes;
+    var text = new TextDecoder("utf-8", { fatal: false }).decode(rawBytes);
+    return parseFormat(text, interpretAs);
+  }
+
   // ── DOM helpers ─────────────────────────────────────────────
   function $(sel, root) { return (root || document).querySelector(sel); }
   function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
@@ -1088,28 +1212,25 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
   // ── App state ───────────────────────────────────────────────
   var state = {
     lang: I.detect(),
-    mode: "text",          // "text" | "file" | "folder"
+    mode: "text",                                 // "text" | "file" | "folder"
     text: {
-      direction: "encode", // "encode" (text→bytes) | "decode" (bytes→text)
-      textValue: "",
-      bytesValue: "",
-      outEnc: "utf8",
-      outFmt: "hex",
-      inEnc: "auto",
-      inFmt: "hex",
+      subMode: "encode",                          // "encode" | "decode"
+      encode: { text: "", enc: "utf8", fmt: "hex" },
+      decode: { bytes: "", enc: "auto", fmt: "hex" },
       error: null
     },
     file: {
       file: null,
-      bytes: null,
-      detected: null,
-      sourceEnc: "auto",
-      targetEnc: "utf8",
-      outFmt: "hex",
+      rawBytes: null,                             // file-as-read (no interpretation)
+      interpretAs: "binary",                      // "binary" | "hex" | "dec" | "bin" | "base64"
+      sourceEnc: "auto",                          // encoding of the (interpreted) bytes
+      targetEnc: "utf8",                          // re-encode target for download
+      outFmt: "hex",                              // how to display bytes
       error: null
     },
     folder: {
-      files: [],           // [{path, file, bytes, detected, ok, error, converted}]
+      files: [],                                  // [{path, file, rawBytes, ok, converted}]
+      interpretAs: "binary",                      // applied uniformly to all files
       sourceEnc: "auto",
       targetEnc: "utf8",
       processed: false
@@ -1131,6 +1252,18 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
     else if (state.mode === "folder") app.appendChild(renderFolderMode());
     app.appendChild(el("div", { class: "app__footer small" }, t("footer.note")));
     root.appendChild(app);
+    // Autofocus the active textarea on text mode so the cursor blinks
+    // ready for input. Place caret at end so existing content isn't selected.
+    if (state.mode === "text") {
+      var ta = root.querySelector(".panel--active textarea:not([readonly])");
+      if (ta) {
+        try {
+          ta.focus({ preventScroll: true });
+          var pos = ta.value.length;
+          ta.setSelectionRange(pos, pos);
+        } catch (e) {}
+      }
+    }
     // notify sitenav of language
     try { window.dispatchEvent(new CustomEvent("langchange", { detail: state.lang })); } catch (e) {}
   }
@@ -1176,209 +1309,209 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
   // ── Mode 1: Text ────────────────────────────────────────────
   function renderTextMode() {
     var s = state.text;
+    var wrap = el("div");
+
+    // Direction toggle is the swap button (⇄) inside the active panel head.
+    // Left is always the input (active, accent border); right is always the
+    // readonly result. Clicking ⇄ flips what the left panel represents
+    // (text → bytes vs bytes → text).
 
     var card = el("div", { class: "card" });
-
-    var textPanel = renderTextPanel(s);
-    var bytesPanel = renderBytesPanel(s);
-
-    var split = el("div", { class: "split" }, [textPanel, bytesPanel]);
-    card.appendChild(split);
-
-    if (s.error) {
-      card.appendChild(el("div", { class: "error" }, t(s.error)));
-    }
-
-    return card;
+    if (s.subMode === "encode") card.appendChild(renderEncodePane(s));
+    else card.appendChild(renderDecodePane(s));
+    if (s.error) card.appendChild(el("div", { class: "error" }, t(s.error)));
+    wrap.appendChild(card);
+    return wrap;
   }
 
-  function renderTextPanel(s) {
-    var panel = el("div", { class: "panel" });
-    var head = el("div", { class: "panel__head" }, [
-      el("div", { class: "panel__title" }, t("panel.text")),
-      el("div", { class: "panel__opts" })
-    ]);
-    var ta = el("textarea", {
+  // Encode pane: text input (left, editable) → bytes output (right, readonly).
+  function renderEncodePane(s) {
+    var e = s.encode;
+    var split = el("div", { class: "split" });
+
+    var bytesTa, byteStatRight, byteStatLeft, charStatLeft, errSink;
+
+    function placeholderFor(fmt) {
+      return fmt === "hex" ? "DE AD BE EF"
+           : fmt === "dec" ? "222 173 190 239"
+           : fmt === "bin" ? "11011110 10101101" : "3q2+7w==";
+    }
+
+    function recompute() {
+      try {
+        var bytes = encodeText(e.text, e.enc);
+        bytesTa.value = formatBytes(bytes, e.fmt);
+        byteStatRight.textContent = String(bytes.length);
+        byteStatLeft.textContent = String(bytes.length);
+        s.error = null;
+        if (errSink) errSink.style.display = "none";
+      } catch (err) {
+        bytesTa.value = "";
+        byteStatRight.textContent = "0";
+        byteStatLeft.textContent = "0";
+        s.error = "err.encode";
+        if (errSink) { errSink.textContent = t(s.error); errSink.style.display = ""; }
+      }
+    }
+
+    // Left: editable text (active panel, accent border)
+    var leftPanel = el("div", { class: "panel panel--active" });
+    var leftTa = el("textarea", {
       class: "ta ta--text",
       spellcheck: "false",
       placeholder: t("panel.text"),
-      oninput: function (e) {
-        s.textValue = e.target.value;
-        s.error = null;
-        s.direction = "encode";
-        try {
-          var bytes = encodeText(s.textValue, s.outEnc);
-          s.bytesValue = formatBytes(bytes, s.outFmt);
-          updateTextStats(panel, footerStats, s);
-          syncBytesView(s);
-        } catch (err) {
-          s.error = "err.encode";
-          renderError();
-        }
+      oninput: function (ev) {
+        e.text = ev.target.value;
+        charStatLeft.textContent = String(charLen(e.text));
+        recompute();
       }
     });
-    ta.value = s.textValue;
-    var byteLen = (function () { try { return encodeText(s.textValue, s.outEnc).length; } catch (e) { return 0; } })();
-    var footerStats = el("div", { class: "panel__stats" }, [
-      el("span", { class: "small muted" }, [t("stat.charLen"), el("b", null, String(charLen(s.textValue)))]),
-      el("span", { class: "small muted" }, [t("stat.byteLen"), el("b", null, String(byteLen))])
-    ]);
-    var copyBtn = el("button", {
-      class: "btn--ghost btn",
-      onclick: function (e) { copyToClipboard(s.textValue, e.currentTarget); }
-    }, t("action.copy"));
-    var clearBtn = el("button", {
-      class: "btn--ghost btn",
-      onclick: function () { s.textValue = ""; s.bytesValue = ""; s.error = null; render(); }
-    }, t("action.clear"));
-    var footer = el("div", { class: "panel__footer" }, [
-      footerStats,
-      el("div", { class: "panel__actions" }, [copyBtn, clearBtn])
-    ]);
-    panel.appendChild(head);
-    panel.appendChild(el("div", { class: "panel__body" }, [ta]));
-    panel.appendChild(footer);
-    panel._ta = ta;
-    state.text._textPanel = panel;
-    return panel;
+    leftTa.value = e.text;
+    charStatLeft = el("b", null, String(charLen(e.text)));
+    byteStatLeft = el("b", null, "0");
+    leftPanel.appendChild(el("div", { class: "panel__head" }, [
+      el("div", { class: "panel__title" }, t("panel.text")),
+      renderSwapBtn()
+    ]));
+    leftPanel.appendChild(el("div", { class: "panel__body" }, [leftTa]));
+    leftPanel.appendChild(el("div", { class: "panel__footer" }, [
+      el("div", { class: "panel__stats" }, [
+        el("span", { class: "small muted" }, [t("stat.charLen"), " ", charStatLeft]),
+        el("span", { class: "small muted" }, [t("stat.byteLen"), " ", byteStatLeft])
+      ]),
+      el("div", { class: "panel__actions" }, [
+        el("button", { class: "btn--ghost btn", onclick: function (ev) { copyToClipboard(e.text, ev.currentTarget); } }, t("action.copy")),
+        el("button", { class: "btn--ghost btn", onclick: function () { e.text = ""; render(); } }, t("action.clear"))
+      ])
+    ]));
+
+    // Right: readonly bytes preview
+    var encSel = renderEncSelect(e.enc, false, function (v) { e.enc = v; recompute(); });
+    var fmtSel = renderFmtSelect(e.fmt, function (v) { e.fmt = v; bytesTa.placeholder = placeholderFor(v); recompute(); });
+    byteStatRight = el("b", null, "0");
+    bytesTa = el("textarea", { class: "ta", readonly: "true", spellcheck: "false", placeholder: placeholderFor(e.fmt) });
+
+    var rightPanel = el("div", { class: "panel panel--readonly" });
+    rightPanel.appendChild(el("div", { class: "panel__head" }, [
+      el("div", { class: "panel__title" }, t("panel.bytes")),
+      el("div", { class: "panel__opts" }, [
+        el("div", { class: "field" }, [el("span", { class: "field__label" }, t("field.outputEncoding")), encSel]),
+        el("div", { class: "field" }, [el("span", { class: "field__label" }, t("field.format")), fmtSel])
+      ])
+    ]));
+    rightPanel.appendChild(el("div", { class: "panel__body" }, [bytesTa]));
+    rightPanel.appendChild(el("div", { class: "panel__footer" }, [
+      el("div", { class: "panel__stats" }, [
+        el("span", { class: "small muted" }, [t("stat.byteLen"), " ", byteStatRight])
+      ]),
+      el("div", { class: "panel__actions" }, [
+        el("button", { class: "btn--ghost btn", onclick: function (ev) { copyToClipboard(bytesTa.value, ev.currentTarget); } }, t("action.copy")),
+        el("button", {
+          class: "btn--ghost btn",
+          onclick: function () { try { download(encodeText(e.text, e.enc), "bytes.bin"); } catch (err) {} }
+        }, t("action.download"))
+      ])
+    ]));
+
+    split.appendChild(leftPanel);
+    split.appendChild(rightPanel);
+    recompute();
+    return split;
   }
 
-  function renderBytesPanel(s) {
-    var panel = el("div", { class: "panel" });
+  // Decode pane: bytes input (left, editable) → text output (right, readonly).
+  function renderDecodePane(s) {
+    var d = s.decode;
+    var split = el("div", { class: "split" });
 
-    var encSel = renderEncSelect(s.outEnc, false, function (v) {
-      s.outEnc = v;
-      s.error = null;
+    var textTa, byteStatLeft, charStatRight, detectedSpan, errSink;
+
+    function placeholderFor(fmt) {
+      return fmt === "hex" ? "DE AD BE EF"
+           : fmt === "dec" ? "222 173 190 239"
+           : fmt === "bin" ? "11011110 10101101" : "3q2+7w==";
+    }
+
+    function recompute() {
       try {
-        var bytes = encodeText(s.textValue, s.outEnc);
-        s.bytesValue = formatBytes(bytes, s.outFmt);
-        render();
-      } catch (e) { s.error = "err.encode"; render(); }
-    });
-    var fmtSel = renderFmtSelect(s.outFmt, function (v) {
-      s.outFmt = v;
-      s.error = null;
-      try {
-        if (s.direction === "encode") {
-          var bytes = encodeText(s.textValue, s.outEnc);
-          s.bytesValue = formatBytes(bytes, s.outFmt);
+        var bytes = parseFormat(d.bytes, d.fmt);
+        var dec = decodeBytes(bytes, d.enc);
+        textTa.value = dec.text;
+        byteStatLeft.textContent = String(bytes.length);
+        charStatRight.textContent = String(charLen(dec.text));
+        if (d.enc === "auto" && bytes.length) {
+          detectedSpan.textContent = t("field.detected") + ": " + ejToLabel(dec.detected);
         } else {
-          // re-derive from current bytesValue parsing
-          try {
-            var b2 = parseFormat(s.bytesValue, s.inFmt);
-            s.bytesValue = formatBytes(b2, s.outFmt);
-            s.inFmt = s.outFmt;
-          } catch (e) { /* keep raw */ }
+          detectedSpan.textContent = "";
         }
-        render();
-      } catch (e) { render(); }
-    });
-    var opts = el("div", { class: "panel__opts" }, [
-      el("div", { class: "field" }, [
-        el("span", { class: "field__label" }, t("field.outputEncoding")), encSel
-      ]),
-      el("div", { class: "field" }, [
-        el("span", { class: "field__label" }, t("field.format")), fmtSel
-      ])
-    ]);
-    var head = el("div", { class: "panel__head" }, [
-      el("div", { class: "panel__title" }, t("panel.bytes")),
-      opts
-    ]);
-    var ta = el("textarea", {
+        s.error = null;
+      } catch (err) {
+        textTa.value = "";
+        charStatRight.textContent = "0";
+        byteStatLeft.textContent = "0";
+        detectedSpan.textContent = "";
+        s.error = err.message === "parse" ? "err.parse" : "err.decode";
+      }
+    }
+
+    // Left: editable bytes
+    var encSel = renderEncSelect(d.enc, true, function (v) { d.enc = v; recompute(); });
+    var fmtSel = renderFmtSelect(d.fmt, function (v) { d.fmt = v; bytesTa.placeholder = placeholderFor(v); recompute(); });
+    byteStatLeft = el("b", null, "0");
+
+    var bytesTa = el("textarea", {
       class: "ta",
       spellcheck: "false",
-      placeholder: s.outFmt === "hex" ? "DE AD BE EF" :
-                   s.outFmt === "dec" ? "222 173 190 239" :
-                   s.outFmt === "bin" ? "11011110 10101101" : "3q2+7w==",
-      oninput: function (e) {
-        s.bytesValue = e.target.value;
-        s.error = null;
-        s.direction = "decode";
-        s.inFmt = s.outFmt;
-        try {
-          var bytes = parseFormat(s.bytesValue, s.inFmt);
-          var srcEnc = s.outEnc; // when reverse-flowing, use selected output enc as input enc
-          var decoded = decodeBytes(bytes, srcEnc);
-          s.textValue = decoded.text;
-          syncTextView(s);
-        } catch (err) {
-          s.error = err.message === "parse" ? "err.parse" : "err.decode";
-          renderError();
-        }
-      }
+      placeholder: placeholderFor(d.fmt),
+      oninput: function (ev) { d.bytes = ev.target.value; recompute(); }
     });
-    ta.value = s.bytesValue;
-    var copyBtn = el("button", {
-      class: "btn--ghost btn",
-      onclick: function (e) { copyToClipboard(s.bytesValue, e.currentTarget); }
-    }, t("action.copy"));
-    var dlBtn = el("button", {
-      class: "btn--ghost btn",
-      onclick: function () {
-        try {
-          var bytes = s.direction === "encode" ? encodeText(s.textValue, s.outEnc) : parseFormat(s.bytesValue, s.inFmt);
-          download(bytes, "bytes.bin");
-        } catch (e) {}
-      }
-    }, t("action.download"));
-    var clearBtn = el("button", {
-      class: "btn--ghost btn",
-      onclick: function () { s.bytesValue = ""; s.textValue = ""; s.error = null; render(); }
-    }, t("action.clear"));
-    var byteCount = (function () {
-      try { return s.direction === "encode" ? encodeText(s.textValue, s.outEnc).length : parseFormat(s.bytesValue, s.inFmt).length; }
-      catch (e) { return 0; }
-    })();
-    var footerStats = el("div", { class: "panel__stats" }, [
-      el("span", { class: "small muted" }, [t("stat.byteLen"), el("b", null, String(byteCount))])
-    ]);
-    var footer = el("div", { class: "panel__footer" }, [
-      footerStats,
-      el("div", { class: "panel__actions" }, [copyBtn, dlBtn, clearBtn])
-    ]);
-    panel.appendChild(head);
-    panel.appendChild(el("div", { class: "panel__body" }, [ta]));
-    panel.appendChild(footer);
-    return panel;
-  }
+    bytesTa.value = d.bytes;
 
-  function syncBytesView(s) {
-    // Update bytes textarea content without full re-render.
-    var bytesTa = document.querySelectorAll(".panel .ta")[1];
-    if (bytesTa) bytesTa.value = s.bytesValue;
-    updateByteStats(s);
+    var leftPanel = el("div", { class: "panel panel--active" });
+    leftPanel.appendChild(el("div", { class: "panel__head" }, [
+      el("div", { class: "panel__title" }, t("panel.bytes")),
+      el("div", { class: "panel__opts" }, [
+        el("div", { class: "field" }, [el("span", { class: "field__label" }, t("field.inputEncoding")), encSel]),
+        el("div", { class: "field" }, [el("span", { class: "field__label" }, t("field.format")), fmtSel]),
+        renderSwapBtn()
+      ])
+    ]));
+    leftPanel.appendChild(el("div", { class: "panel__body" }, [bytesTa]));
+    leftPanel.appendChild(el("div", { class: "panel__footer" }, [
+      el("div", { class: "panel__stats" }, [
+        el("span", { class: "small muted" }, [t("stat.byteLen"), " ", byteStatLeft])
+      ]),
+      el("div", { class: "panel__actions" }, [
+        el("button", { class: "btn--ghost btn", onclick: function (ev) { copyToClipboard(d.bytes, ev.currentTarget); } }, t("action.copy")),
+        el("button", { class: "btn--ghost btn", onclick: function () { d.bytes = ""; render(); } }, t("action.clear"))
+      ])
+    ]));
+
+    // Right: readonly decoded text
+    charStatRight = el("b", null, "0");
+    detectedSpan = el("span", { class: "small muted" }, "");
+    textTa = el("textarea", { class: "ta ta--text", readonly: "true", spellcheck: "false" });
+
+    var rightPanel = el("div", { class: "panel panel--readonly" });
+    rightPanel.appendChild(el("div", { class: "panel__head" }, [
+      el("div", { class: "panel__title" }, t("panel.text")),
+      el("div", { class: "panel__opts" }, [detectedSpan])
+    ]));
+    rightPanel.appendChild(el("div", { class: "panel__body" }, [textTa]));
+    rightPanel.appendChild(el("div", { class: "panel__footer" }, [
+      el("div", { class: "panel__stats" }, [
+        el("span", { class: "small muted" }, [t("stat.charLen"), " ", charStatRight])
+      ]),
+      el("div", { class: "panel__actions" }, [
+        el("button", { class: "btn--ghost btn", onclick: function (ev) { copyToClipboard(textTa.value, ev.currentTarget); } }, t("action.copy"))
+      ])
+    ]));
+
+    split.appendChild(leftPanel);
+    split.appendChild(rightPanel);
+    recompute();
+    return split;
   }
-  function syncTextView(s) {
-    var textTa = document.querySelectorAll(".panel .ta")[0];
-    if (textTa) textTa.value = s.textValue;
-    updateTextStats(null, null, s);
-    updateByteStats(s);
-  }
-  function updateTextStats(panel, statsNode, s) {
-    var panels = document.querySelectorAll(".panel");
-    if (!panels.length) return;
-    var statRow = panels[0].querySelector(".panel__stats");
-    if (!statRow) return;
-    var bs = statRow.querySelectorAll("b");
-    if (bs.length >= 2) {
-      bs[0].textContent = String(charLen(s.textValue));
-      try { bs[1].textContent = String(encodeText(s.textValue, s.outEnc).length); } catch (e) { bs[1].textContent = "0"; }
-    }
-  }
-  function updateByteStats(s) {
-    var panels = document.querySelectorAll(".panel");
-    if (panels.length < 2) return;
-    var statRow = panels[1].querySelector(".panel__stats");
-    if (!statRow) return;
-    var b = statRow.querySelector("b");
-    if (!b) return;
-    try {
-      var n = s.direction === "encode" ? encodeText(s.textValue, s.outEnc).length : parseFormat(s.bytesValue, s.inFmt).length;
-      b.textContent = String(n);
-    } catch (e) { b.textContent = "0"; }
-  }
-  function renderError() { render(); }
   function charLen(s) {
     // Counts code points (so surrogate pairs count as one).
     if (typeof s !== "string") return 0;
@@ -1416,6 +1549,40 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
   }
 
   // ── Mode 2: File ────────────────────────────────────────────
+  function renderSwapBtn() {
+    var btn = el("button", {
+      class: "swap-btn",
+      type: "button",
+      title: t("subMode." + (state.text.subMode === "encode" ? "decode" : "encode")),
+      "aria-label": t("subMode." + (state.text.subMode === "encode" ? "decode" : "encode")),
+      onclick: function () {
+        state.text.subMode = state.text.subMode === "encode" ? "decode" : "encode";
+        state.text.error = null;
+        render();
+      }
+    });
+    btn.innerHTML =
+      '<svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" ' +
+      'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M3 5.5 L13 5.5 M10.5 3 L13 5.5 L10.5 8"/>' +
+      '<path d="M13 10.5 L3 10.5 M5.5 8 L3 10.5 L5.5 13"/>' +
+      '</svg>';
+    return btn;
+  }
+
+  function renderInterpretSelect(value, onchange) {
+    var sel = el("select", { class: "select", onchange: function (e) { onchange(e.target.value); } });
+    [
+      ["binary", "interpret.binary"], ["hex", "interpret.hex"], ["dec", "interpret.dec"],
+      ["bin", "interpret.bin"], ["base64", "interpret.base64"]
+    ].forEach(function (p) {
+      var o = el("option", { value: p[0] }, t(p[1]));
+      if (value === p[0]) o.selected = true;
+      sel.appendChild(o);
+    });
+    return sel;
+  }
+
   function renderFileMode() {
     var s = state.file;
     var card = el("div", { class: "card" });
@@ -1427,20 +1594,47 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
       return card;
     }
 
-    var info = el("div", { class: "panel__head" }, [
-      el("div", { class: "panel__title mono" }, s.file.name + " · " + fmtBytes(s.bytes ? s.bytes.length : s.file.size) +
-        (s.detected ? " · " + t("field.detected") + ": " + ejToLabel(s.detected) : "")),
-      el("div", { class: "panel__opts" }, [
-        el("button", {
-          class: "btn--ghost btn",
-          onclick: function () { state.file = { file: null, bytes: null, detected: null, sourceEnc: "auto", targetEnc: "utf8", outFmt: "hex", error: null }; render(); }
-        }, t("action.clear"))
-      ])
+    // Derive parsed bytes from raw bytes per current interpretation.
+    var parsedBytes = null, parseError = null;
+    try { parsedBytes = interpretFileBytes(s.rawBytes, s.interpretAs); }
+    catch (e) { parsedBytes = null; parseError = true; }
+    var detected = null;
+    if (parsedBytes && parsedBytes.length) {
+      try { detected = detectEncoding(parsedBytes); } catch (e) {}
+    }
+
+    var info = el("div", { class: "fileinfo" }, [
+      el("div", { class: "fileinfo__name" }, [
+        el("b", { class: "mono" }, s.file.name),
+        el("span", { class: "fileinfo__meta" },
+          " · " + fmtBytes(s.rawBytes ? s.rawBytes.length : s.file.size) +
+          (parsedBytes && s.interpretAs !== "binary"
+            ? " · " + t("interpret." + s.interpretAs) + " → " + parsedBytes.length + " B"
+            : "") +
+          (detected ? " · " + t("field.detected") + ": " + ejToLabel(detected) : "")
+        )
+      ]),
+      el("button", {
+        class: "btn--ghost btn",
+        onclick: function () {
+          state.file = { file: null, rawBytes: null, interpretAs: "binary", sourceEnc: "auto", targetEnc: "utf8", outFmt: "hex", error: null };
+          render();
+        }
+      }, t("action.clear"))
     ]);
 
-    // Two columns: bytes (hex view) + re-encoded text preview
-    var bytesPanel = el("div", { class: "panel" });
+    // Top options bar: interpret-as + source encoding + target encoding
+    var interpretSel = renderInterpretSelect(s.interpretAs, function (v) { s.interpretAs = v; render(); });
     var srcSel = renderEncSelect(s.sourceEnc, true, function (v) { s.sourceEnc = v; render(); });
+    var tgtSel = renderEncSelect(s.targetEnc, false, function (v) { s.targetEnc = v; render(); });
+    var topOpts = el("div", { class: "optsbar" }, [
+      el("div", { class: "field" }, [el("span", { class: "field__label" }, t("field.interpretAs")), interpretSel]),
+      el("div", { class: "field" }, [el("span", { class: "field__label" }, t("field.inputEncoding")), srcSel]),
+      el("div", { class: "field" }, [el("span", { class: "field__label" }, t("field.targetEncoding")), tgtSel])
+    ]);
+
+    // Bytes panel (left)
+    var bytesPanel = el("div", { class: "panel" });
     var fmtSel = renderFmtSelect(s.outFmt, function (v) { s.outFmt = v; render(); });
     bytesPanel.appendChild(el("div", { class: "panel__head" }, [
       el("div", { class: "panel__title" }, t("result.bytes")),
@@ -1449,78 +1643,68 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
       ])
     ]));
     var bytesPreview = el("textarea", { class: "ta", readonly: "true", spellcheck: "false" });
-    bytesPreview.value = s.bytes ? formatBytes(s.bytes, s.outFmt) : "";
+    bytesPreview.value = parsedBytes ? formatBytes(parsedBytes, s.outFmt) : "";
     bytesPanel.appendChild(el("div", { class: "panel__body" }, [bytesPreview]));
     bytesPanel.appendChild(el("div", { class: "panel__footer" }, [
       el("div", { class: "panel__stats" }, [
-        el("span", { class: "small muted" }, [t("stat.byteLen"), el("b", null, String(s.bytes ? s.bytes.length : 0))])
+        el("span", { class: "small muted" }, [t("stat.byteLen"), " ", el("b", null, String(parsedBytes ? parsedBytes.length : 0))])
       ]),
       el("div", { class: "panel__actions" }, [
+        el("button", { class: "btn--ghost btn", onclick: function (e) { copyToClipboard(bytesPreview.value, e.currentTarget); } }, t("action.copy")),
         el("button", {
           class: "btn--ghost btn",
-          onclick: function (e) { copyToClipboard(bytesPreview.value, e.currentTarget); }
-        }, t("action.copy")),
-        el("button", {
-          class: "btn--ghost btn",
-          onclick: function () { if (s.bytes) download(s.bytes, s.file.name + ".bin"); }
+          onclick: function () { if (parsedBytes) download(parsedBytes, s.file.name + ".bin"); }
         }, t("action.download"))
       ])
     ]));
 
-    var textPanel = el("div", { class: "panel" });
-    var tgtSel = renderEncSelect(s.targetEnc, false, function (v) { s.targetEnc = v; render(); });
-    textPanel.appendChild(el("div", { class: "panel__head" }, [
-      el("div", { class: "panel__title" }, t("result.decoded")),
-      el("div", { class: "panel__opts" }, [
-        el("div", { class: "field" }, [el("span", { class: "field__label" }, t("field.inputEncoding")), srcSel]),
-        el("div", { class: "field" }, [el("span", { class: "field__label" }, t("field.targetEncoding")), tgtSel])
-      ])
-    ]));
+    // Text panel (right)
     var decoded = "";
     var reEncoded = null;
+    var decodeFailed = false;
     try {
-      if (s.bytes) {
-        var dec = decodeBytes(s.bytes, s.sourceEnc);
+      if (parsedBytes && parsedBytes.length) {
+        var dec = decodeBytes(parsedBytes, s.sourceEnc);
         decoded = dec.text;
         reEncoded = encodeText(decoded, s.targetEnc);
       }
-    } catch (e) { s.error = "err.decode"; }
+    } catch (e) { decodeFailed = true; }
     var textPreview = el("textarea", { class: "ta ta--text", readonly: "true", spellcheck: "false" });
     textPreview.value = decoded;
+    var textPanel = el("div", { class: "panel" });
+    textPanel.appendChild(el("div", { class: "panel__head" }, [
+      el("div", { class: "panel__title" }, t("result.decoded"))
+    ]));
     textPanel.appendChild(el("div", { class: "panel__body" }, [textPreview]));
     textPanel.appendChild(el("div", { class: "panel__footer" }, [
       el("div", { class: "panel__stats" }, [
-        el("span", { class: "small muted" }, [t("stat.charLen"), el("b", null, String(charLen(decoded)))]),
-        el("span", { class: "small muted" }, [t("stat.byteLen"), el("b", null, String(reEncoded ? reEncoded.length : 0))])
+        el("span", { class: "small muted" }, [t("stat.charLen"), " ", el("b", null, String(charLen(decoded)))]),
+        el("span", { class: "small muted" }, [t("stat.byteLen"), " ", el("b", null, String(reEncoded ? reEncoded.length : 0))])
       ]),
       el("div", { class: "panel__actions" }, [
+        el("button", { class: "btn--ghost btn", onclick: function (e) { copyToClipboard(decoded, e.currentTarget); } }, t("action.copy")),
         el("button", {
           class: "btn--ghost btn",
-          onclick: function (e) { copyToClipboard(decoded, e.currentTarget); }
-        }, t("action.copy")),
-        el("button", {
-          class: "btn--ghost btn",
-          onclick: function () {
-            if (reEncoded) download(reEncoded, suggestFileName(s.file.name, s.targetEnc));
-          }
+          onclick: function () { if (reEncoded) download(reEncoded, suggestFileName(s.file.name, s.targetEnc)); }
         }, t("action.download"))
       ])
     ]));
 
     card.appendChild(info);
-    if (s.error) card.appendChild(el("div", { class: "error" }, t(s.error)));
-    card.appendChild(el("div", { class: "split", style: { marginTop: "12px" } }, [bytesPanel, textPanel]));
+    card.appendChild(topOpts);
+    if (parseError) card.appendChild(el("div", { class: "error" }, t("err.parse")));
+    else if (decodeFailed) card.appendChild(el("div", { class: "error" }, t("err.decode")));
+    card.appendChild(el("div", { class: "split" }, [bytesPanel, textPanel]));
     return card;
   }
 
   function loadFile(file) {
     if (!file) return;
     var s = state.file;
-    s.file = file; s.bytes = null; s.detected = null; s.error = null;
+    s.file = file; s.rawBytes = null; s.error = null;
     var reader = new FileReader();
     reader.onload = function () {
-      s.bytes = new Uint8Array(reader.result);
-      s.detected = detectEncoding(s.bytes);
+      s.rawBytes = new Uint8Array(reader.result);
       render();
     };
     reader.onerror = function () { s.error = "err.decode"; render(); };
@@ -1540,7 +1724,11 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
       return card;
     }
 
-    var opts = el("div", { class: "panel__opts", style: { marginBottom: "12px" } }, [
+    var opts = el("div", { class: "optsbar" }, [
+      el("div", { class: "field" }, [
+        el("span", { class: "field__label" }, t("field.interpretAs")),
+        renderInterpretSelect(s.interpretAs, function (v) { s.interpretAs = v; processFolder(); })
+      ]),
       el("div", { class: "field" }, [
         el("span", { class: "field__label" }, t("field.inputEncoding")),
         renderEncSelect(s.sourceEnc, true, function (v) { s.sourceEnc = v; processFolder(); })
@@ -1549,7 +1737,8 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
         el("span", { class: "field__label" }, t("field.targetEncoding")),
         renderEncSelect(s.targetEnc, false, function (v) { s.targetEnc = v; processFolder(); })
       ]),
-      el("span", { class: "small muted", style: { marginLeft: "8px" } }, [
+      el("span", { class: "optsbar__spacer" }),
+      el("span", { class: "small muted" }, [
         t("stat.fileCount"), ": ", el("b", null, String(s.files.length))
       ])
     ]);
@@ -1557,12 +1746,12 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
       el("button", { class: "btn", onclick: downloadFolderZip }, t("file.action.downloadAll")),
       el("button", {
         class: "btn btn--secondary",
-        onclick: function () { state.folder = { files: [], sourceEnc: "auto", targetEnc: "utf8", processed: false }; render(); }
+        onclick: function () { state.folder = { files: [], interpretAs: "binary", sourceEnc: "auto", targetEnc: "utf8", processed: false }; render(); }
       }, t("action.clear"))
     ]);
     card.appendChild(opts);
     card.appendChild(actions);
-    card.appendChild(renderFolderTable(s));
+    card.appendChild(el("div", { class: "tablewrap" }, [renderFolderTable(s)]));
     return card;
   }
 
@@ -1573,20 +1762,21 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
       el("th", { class: "num" }, t("file.size")),
       el("th", null, t("field.detected")),
       el("th", null, t("file.status")),
-      el("th", null, "")
+      el("th", { class: "actions" }, "")
     ]));
     var tbody = el("tbody");
     s.files.forEach(function (row) {
+      var displaySize = row.parsedBytes ? row.parsedBytes.length : (row.rawBytes ? row.rawBytes.length : 0);
       var tr = el("tr", null, [
         el("td", { class: "mono" }, row.path),
-        el("td", { class: "num mono" }, fmtBytes(row.bytes ? row.bytes.length : 0)),
+        el("td", { class: "num mono" }, fmtBytes(displaySize)),
         el("td", { class: "mono" }, row.detected ? ejToLabel(row.detected) : "—"),
         el("td", null,
           row.ok
             ? el("span", { class: "badge badge--ok" }, t("file.status.ok"))
             : el("span", { class: "badge badge--fail" }, t("file.status.fail"))
         ),
-        el("td", null,
+        el("td", { class: "actions" },
           row.converted
             ? el("button", {
                 class: "btn--ghost btn",
@@ -1612,13 +1802,12 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
       var path = file.webkitRelativePath || file.name;
       var reader = new FileReader();
       reader.onload = function () {
-        rows[idx] = { path: path, file: file, bytes: new Uint8Array(reader.result), detected: null, ok: false, converted: null };
-        try { rows[idx].detected = detectEncoding(rows[idx].bytes); } catch (e) {}
+        rows[idx] = { path: path, file: file, rawBytes: new Uint8Array(reader.result), parsedBytes: null, detected: null, ok: false, converted: null };
         pending--;
         if (pending === 0) { s.files = rows.filter(Boolean); processFolder(); }
       };
       reader.onerror = function () {
-        rows[idx] = { path: path, file: file, bytes: new Uint8Array(0), detected: null, ok: false, converted: null };
+        rows[idx] = { path: path, file: file, rawBytes: new Uint8Array(0), parsedBytes: null, detected: null, ok: false, converted: null };
         pending--;
         if (pending === 0) { s.files = rows.filter(Boolean); processFolder(); }
       };
@@ -1630,7 +1819,9 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
     var s = state.folder;
     s.files.forEach(function (row) {
       try {
-        var dec = decodeBytes(row.bytes, s.sourceEnc);
+        row.parsedBytes = interpretFileBytes(row.rawBytes, s.interpretAs);
+        try { row.detected = row.parsedBytes && row.parsedBytes.length ? detectEncoding(row.parsedBytes) : null; } catch (e) { row.detected = null; }
+        var dec = decodeBytes(row.parsedBytes, s.sourceEnc);
         var enc = encodeText(dec.text, s.targetEnc);
         row.converted = enc;
         row.ok = true;

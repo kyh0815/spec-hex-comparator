@@ -13,6 +13,16 @@
       "mode.file": "파일",
       "mode.folder": "폴더",
 
+      "subMode.encode": "텍스트 → 바이트",
+      "subMode.decode": "바이트 → 텍스트",
+
+      "field.interpretAs": "파일 해석 방식",
+      "interpret.binary": "Binary (그대로)",
+      "interpret.hex": "Hex 텍스트",
+      "interpret.dec": "10진 텍스트",
+      "interpret.bin": "2진 텍스트",
+      "interpret.base64": "Base64 텍스트",
+
       "panel.text": "텍스트",
       "panel.bytes": "바이트",
       "panel.input": "입력",
@@ -87,6 +97,16 @@
       "mode.file": "ファイル",
       "mode.folder": "フォルダ",
 
+      "subMode.encode": "テキスト → バイト",
+      "subMode.decode": "バイト → テキスト",
+
+      "field.interpretAs": "ファイル解釈",
+      "interpret.binary": "Binary (そのまま)",
+      "interpret.hex": "Hex テキスト",
+      "interpret.dec": "10進 テキスト",
+      "interpret.bin": "2進 テキスト",
+      "interpret.base64": "Base64 テキスト",
+
       "panel.text": "テキスト",
       "panel.bytes": "バイト",
       "panel.input": "入力",
@@ -160,6 +180,16 @@
       "mode.text": "Text",
       "mode.file": "File",
       "mode.folder": "Folder",
+
+      "subMode.encode": "Text → Bytes",
+      "subMode.decode": "Bytes → Text",
+
+      "field.interpretAs": "Interpret file as",
+      "interpret.binary": "Binary (raw)",
+      "interpret.hex": "Hex text",
+      "interpret.dec": "Decimal text",
+      "interpret.bin": "Binary text",
+      "interpret.base64": "Base64 text",
 
       "panel.text": "Text",
       "panel.bytes": "Bytes",
