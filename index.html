@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" data-tool="hex">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -1542,9 +1542,74 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 .batch-table__row[data-open="true"] .batch-table__chev { color: var(--ink); }
 
 .drilldown__close { white-space: nowrap; }
+
+/* Site-wide tool navigation. Sits above .app on every page.
+ * Visual: thin top bar, subtle border, tab-style links.
+ * Tokens come from styles.css / charset-styles.css (:root). */
+
+.sitenav {
+  width: 100%;
+  background: var(--surface, #fff);
+  border-bottom: 1px solid var(--line, oklch(93% 0.003 270));
+}
+.sitenav__inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 32px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.sitenav__brand {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2, oklch(40% 0.006 270));
+  letter-spacing: -0.005em;
+  text-decoration: none;
+}
+.sitenav__tabs {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.sitenav__tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-3, oklch(55% 0.005 270));
+  text-decoration: none;
+  border-radius: var(--r-sm, 6px);
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.sitenav__tab:hover {
+  color: var(--ink, oklch(22% 0.005 270));
+  background: var(--bg-sunken, oklch(97.5% 0 0));
+}
+.sitenav__tab--active {
+  color: var(--accent, oklch(52% 0.18 268));
+  background: var(--accent-soft, oklch(96% 0.025 268));
+}
+.sitenav__tab--active:hover {
+  background: var(--accent-soft, oklch(96% 0.025 268));
+}
+.sitenav__tab:focus-visible {
+  outline: 2px solid var(--focus-ring, oklch(85% 0.10 268));
+  outline-offset: 2px;
+}
+
+/* Reduce top padding of .app when sitenav is present (no need for 52px).
+ * Selector is forgiving — works whether sitenav is sibling of #root or inside it. */
+.sitenav ~ #root .app,
+.sitenav + #root .app {
+  padding-top: 28px;
+}
 </style>
 </head>
 <body>
+<nav class="sitenav" id="sitenav" aria-label="Tools"></nav>
 <div id="root"></div>
 <!-- 모든 의존성 인라인: 폐쇄망/오프라인에서 외부 요청 없이 동작 -->
 <script>/**
@@ -3404,6 +3469,11 @@ License: MIT
 
     var t = useMemo(function () { return I.makeT(lang); }, [lang]);
 
+    // 사이트 네비 텍스트를 현재 언어와 동기화 (sitenav.js가 수신)
+    useEffect(function () {
+      try { window.dispatchEvent(new CustomEvent("langchange", { detail: lang })); } catch (e) {}
+    }, [lang]);
+
     var activeA = useMemo(function () { return aFiles.filter(function (f) { return !excludedFiles.has(f.fileName); }); }, [aFiles, excludedFiles]);
     var activeB = useMemo(function () { return bFiles.filter(function (f) { return !excludedFiles.has(f.fileName); }); }, [bFiles, excludedFiles]);
     var pairing = useMemo(function () {
@@ -3472,6 +3542,68 @@ License: MIT
   }
 
   ReactDOM.createRoot(document.getElementById("root")).render(html`<${App} />`);
+})();
+</script>
+<script id="sitenav-js">/* Site-wide tool navigation localizer.
+ * Renders the .sitenav contents based on detected/selected language and
+ * the data-tool attribute on <html>. Listens for 'langchange' events so
+ * either page's language selector can keep the nav in sync. */
+(function () {
+  var DICT = {
+    ko: { hex: "데이터 비교", charset: "문자 코드 변환" },
+    ja: { hex: "データ比較", charset: "文字コード変換" },
+    en: { hex: "Hex comparator", charset: "Charset converter" }
+  };
+  var LANGS = ["ko", "ja", "en"];
+
+  function detect() {
+    var l = (navigator.language || "en").toLowerCase();
+    if (l.indexOf("ko") === 0) return "ko";
+    if (l.indexOf("ja") === 0) return "ja";
+    return "en";
+  }
+
+  function escapeAttr(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+  }
+
+  function render(lang) {
+    if (LANGS.indexOf(lang) < 0) lang = "en";
+    var d = DICT[lang];
+    var active = document.documentElement.getAttribute("data-tool") || "hex";
+    var nav = document.querySelector(".sitenav");
+    if (!nav) return;
+    var hexActive = active === "hex";
+    var csActive = active === "charset";
+    nav.setAttribute("data-lang", lang);
+    nav.innerHTML =
+      '<div class="sitenav__inner">' +
+        '<div class="sitenav__tabs" role="tablist">' +
+          '<a class="sitenav__tab' + (hexActive ? " sitenav__tab--active" : "") + '"' +
+            ' href="./index.html" role="tab" aria-selected="' + (hexActive ? "true" : "false") + '"' +
+            (hexActive ? ' aria-current="page"' : "") +
+            '>' + escapeAttr(d.hex) + '</a>' +
+          '<a class="sitenav__tab' + (csActive ? " sitenav__tab--active" : "") + '"' +
+            ' href="./charset.html" role="tab" aria-selected="' + (csActive ? "true" : "false") + '"' +
+            (csActive ? ' aria-current="page"' : "") +
+            '>' + escapeAttr(d.charset) + '</a>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function init() {
+    render(detect());
+    window.addEventListener("langchange", function (e) {
+      var lang = e && e.detail;
+      if (typeof lang === "string") render(lang);
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
 })();
 </script>
 </body>

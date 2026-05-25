@@ -688,6 +688,11 @@
 
     var t = useMemo(function () { return I.makeT(lang); }, [lang]);
 
+    // 사이트 네비 텍스트를 현재 언어와 동기화 (sitenav.js가 수신)
+    useEffect(function () {
+      try { window.dispatchEvent(new CustomEvent("langchange", { detail: lang })); } catch (e) {}
+    }, [lang]);
+
     var activeA = useMemo(function () { return aFiles.filter(function (f) { return !excludedFiles.has(f.fileName); }); }, [aFiles, excludedFiles]);
     var activeB = useMemo(function () { return bFiles.filter(function (f) { return !excludedFiles.has(f.fileName); }); }, [bFiles, excludedFiles]);
     var pairing = useMemo(function () {

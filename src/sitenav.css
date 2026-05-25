@@ -1,0 +1,63 @@
+/* Site-wide tool navigation. Sits above .app on every page.
+ * Visual: thin top bar, subtle border, tab-style links.
+ * Tokens come from styles.css / charset-styles.css (:root). */
+
+.sitenav {
+  width: 100%;
+  background: var(--surface, #fff);
+  border-bottom: 1px solid var(--line, oklch(93% 0.003 270));
+}
+.sitenav__inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 32px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.sitenav__brand {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2, oklch(40% 0.006 270));
+  letter-spacing: -0.005em;
+  text-decoration: none;
+}
+.sitenav__tabs {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.sitenav__tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-3, oklch(55% 0.005 270));
+  text-decoration: none;
+  border-radius: var(--r-sm, 6px);
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.sitenav__tab:hover {
+  color: var(--ink, oklch(22% 0.005 270));
+  background: var(--bg-sunken, oklch(97.5% 0 0));
+}
+.sitenav__tab--active {
+  color: var(--accent, oklch(52% 0.18 268));
+  background: var(--accent-soft, oklch(96% 0.025 268));
+}
+.sitenav__tab--active:hover {
+  background: var(--accent-soft, oklch(96% 0.025 268));
+}
+.sitenav__tab:focus-visible {
+  outline: 2px solid var(--focus-ring, oklch(85% 0.10 268));
+  outline-offset: 2px;
+}
+
+/* Reduce top padding of .app when sitenav is present (no need for 52px).
+ * Selector is forgiving — works whether sitenav is sibling of #root or inside it. */
+.sitenav ~ #root .app,
+.sitenav + #root .app {
+  padding-top: 28px;
+}
