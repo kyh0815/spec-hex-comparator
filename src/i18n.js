@@ -18,7 +18,6 @@
   var STRINGS = {
     ko: {
       "app.title": "데이터 마이그레이션 검증 도구",
-      "app.subtitle": "As-Is → To-Be CSV를 byte-for-byte 비교하여 Pass / Fail을 판정합니다. 모든 처리는 브라우저 내에서 이루어지며 외부 요청이 없습니다.",
       "lang.label": "언어",
 
       "screenA.title": "파일 업로드 및 검사 설정",
@@ -39,8 +38,6 @@
       "config.inspectLabel": "검사 대상 컬럼 (클릭해서 제외 토글, PK는 항상 포함)",
       "config.toggleOnTitle": "검사 중 — 클릭하여 제외",
       "config.toggleOffTitle": "제외됨 — 클릭하여 복원",
-      "config.byteOption": "바이트 단위로 diff 표시",
-      "config.byteOptionHint": "(기본: 문자 단위)",
 
       "run.button": "비교 실행 및 판정",
       "reset.button": "초기화",
@@ -85,7 +82,7 @@
       "filter.all": "전체",
       "board.filterFail": "실패만",
       "board.filterPass": "통과만",
-      "board.filterAll": "전체",
+      "board.filterAll": "전체 테이블",
       "detail.none": "표시할 row가 없습니다. 다른 필터를 선택해 보세요.",
       "detail.renderNote": "상위 `{cap}`건만 렌더링됨 — 전체 결과는 CSV 내보내기를 사용하세요. (남은 row: `{rest}`건)",
       "detail.previewOnlyAsIs": "As-Is에만 존재하는 row",
@@ -137,6 +134,12 @@
       "batch.metaUnmatched": "짝 없는 파일",
       "drilldown.title": "레코드 상세",
       "drilldown.close": "닫기",
+      "drilldown.recFilterAll": "전체 레코드",
+      "drilldown.recFilterFail": "실패만",
+      "drilldown.recFilterPass": "통과만",
+      "drilldown.colFilterAll": "전체 칼럼",
+      "drilldown.colFilterDiff": "불일치 칼럼만",
+      "drilldown.noColDiff": "이 레코드는 모든 검사 칼럼이 일치합니다.",
       "drilldown.missTitle": "누락 · 초과 레코드",
       "drilldown.metaLbl": "As-Is / To-Be",
       "board.noTables": "해당 필터에 매칭되는 테이블이 없습니다.",
@@ -184,7 +187,6 @@
 
     ja: {
       "app.title": "データ移行検証ツール",
-      "app.subtitle": "As-Is → To-Be のCSVをbyte-for-byte比較して Pass / Fail を判定します。すべての処理はブラウザ内で行われ、外部リクエストはありません。",
       "lang.label": "言語",
 
       "screenA.title": "ファイルのアップロードと検査設定",
@@ -205,8 +207,6 @@
       "config.inspectLabel": "検査対象カラム (クリックで除外を切り替え、PKは常に含む)",
       "config.toggleOnTitle": "検査中 — クリックで除外",
       "config.toggleOffTitle": "除外中 — クリックで復元",
-      "config.byteOption": "バイト単位でdiff表示",
-      "config.byteOptionHint": "(既定: 文字単位)",
 
       "run.button": "比較を実行して判定",
       "reset.button": "リセット",
@@ -251,7 +251,7 @@
       "filter.all": "すべて",
       "board.filterFail": "失敗のみ",
       "board.filterPass": "成功のみ",
-      "board.filterAll": "すべて",
+      "board.filterAll": "全テーブル",
       "detail.none": "表示する行がありません。別のフィルターを選択してください。",
       "detail.renderNote": "上位 `{cap}` 件のみ表示 — 全件はCSV書き出しをご利用ください。(残り: `{rest}` 件)",
       "detail.previewOnlyAsIs": "As-Isにのみ存在する行",
@@ -303,6 +303,12 @@
       "batch.metaUnmatched": "対応なし",
       "drilldown.title": "レコード詳細",
       "drilldown.close": "閉じる",
+      "drilldown.recFilterAll": "全レコード",
+      "drilldown.recFilterFail": "失敗のみ",
+      "drilldown.recFilterPass": "成功のみ",
+      "drilldown.colFilterAll": "全カラム",
+      "drilldown.colFilterDiff": "不一致カラムのみ",
+      "drilldown.noColDiff": "このレコードは全ての検査カラムが一致しています。",
       "drilldown.missTitle": "欠落・余剰レコード",
       "drilldown.metaLbl": "As-Is / To-Be",
       "board.noTables": "該当するテーブルがありません。",
@@ -350,7 +356,6 @@
 
     en: {
       "app.title": "Data Migration Verification Tool",
-      "app.subtitle": "Compares As-Is → To-Be CSVs byte-for-byte to determine Pass / Fail. All processing happens in your browser with no external requests.",
       "lang.label": "Language",
 
       "screenA.title": "Upload files & inspection settings",
@@ -371,8 +376,6 @@
       "config.inspectLabel": "Columns to inspect (click to toggle exclusion; PK always included)",
       "config.toggleOnTitle": "Inspecting — click to exclude",
       "config.toggleOffTitle": "Excluded — click to restore",
-      "config.byteOption": "Show diff by byte",
-      "config.byteOptionHint": "(default: by character)",
 
       "run.button": "Run comparison & verdict",
       "reset.button": "Reset",
@@ -417,7 +420,7 @@
       "filter.all": "All",
       "board.filterFail": "Failed",
       "board.filterPass": "Passed",
-      "board.filterAll": "All",
+      "board.filterAll": "All tables",
       "detail.none": "No rows to display. Try another filter.",
       "detail.renderNote": "Showing the first `{cap}` — use CSV export for the full set. (`{rest}` more rows)",
       "detail.previewOnlyAsIs": "Row exists only in As-Is",
@@ -469,6 +472,12 @@
       "batch.metaUnmatched": "Unpaired",
       "drilldown.title": "Record detail",
       "drilldown.close": "Close",
+      "drilldown.recFilterAll": "All records",
+      "drilldown.recFilterFail": "Failed only",
+      "drilldown.recFilterPass": "Passed only",
+      "drilldown.colFilterAll": "All columns",
+      "drilldown.colFilterDiff": "Mismatch columns only",
+      "drilldown.noColDiff": "All inspected columns match for this record.",
       "drilldown.missTitle": "Missing · extra records",
       "drilldown.metaLbl": "As-Is / To-Be",
       "board.noTables": "No tables match this filter.",

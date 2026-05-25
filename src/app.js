@@ -41,12 +41,66 @@
   }
   function baseName(name) { return name.replace(/\.csv$/i, ""); }
 
+  // 파일을 ArrayBuffer로 직접 읽어 1바이트=U+00xx로 1:1 매핑한 문자열로 변환.
+  // (FileReader.readAsText('iso-8859-1')은 실제로 windows-1252로 디코딩되어 0x80-0x9F 영역이
+  //  의도와 다른 코드포인트로 바뀌므로 우회 필요. 어떤 인코딩의 CSV든 바이트를 무손실 보존.)
+  function bytesToByteString(buf) {
+    var u = new Uint8Array(buf), s = "", CHUNK = 0x8000;
+    for (var i = 0; i < u.length; i += CHUNK) {
+      s += String.fromCharCode.apply(null, u.subarray(i, Math.min(i + CHUNK, u.length)));
+    }
+    return s;
+  }
   function parseFile(file, cb) {
-    Papa.parse(file, {
-      header: true, skipEmptyLines: true, dynamicTyping: false,
-      complete: function (res) { cb(null, { fileName: file.name, columns: (res.meta && res.meta.fields) || [], rows: res.data || [] }); },
-      error: function (err) { cb(err); }
-    });
+    var fr = new FileReader();
+    fr.onerror = function () { cb(fr.error || new Error("read failed")); };
+    fr.onload = function () {
+      var bytes = bytesToByteString(fr.result);
+      var encoding = detectEncoding(bytes);
+      Papa.parse(bytes, {
+        header: true, skipEmptyLines: true, dynamicTyping: false,
+        complete: function (res) {
+          var fields = (res.meta && res.meta.fields) || [];
+          var rows = res.data || [];
+          if (fields.length) {
+            var origFirst = fields[0], strippedFirst = stripBom(origFirst);
+            if (strippedFirst !== origFirst) {
+              fields[0] = strippedFirst;
+              for (var i = 0; i < rows.length; i++) {
+                var r = rows[i]; if (origFirst in r) { r[strippedFirst] = r[origFirst]; delete r[origFirst]; }
+              }
+            }
+          }
+          cb(null, { fileName: file.name, bytes: file.size, encoding: encoding, columns: fields, rows: rows });
+        },
+        error: function (err) { cb(err); }
+      });
+    };
+    fr.readAsArrayBuffer(file);
+  }
+  function stripBom(s) {
+    return (typeof s === "string" && s.length >= 3 && s.charCodeAt(0) === 0xEF && s.charCodeAt(1) === 0xBB && s.charCodeAt(2) === 0xBF) ? s.slice(3) : s;
+  }
+  // 셀의 바이트(iso-8859-1 문자 = 코드포인트 0..255)를 대문자 hex 연속 문자열로
+  function strToHex(s) {
+    if (s == null) return "";
+    s = String(s); var hex = "", c;
+    for (var i = 0; i < s.length; i++) {
+      c = s.charCodeAt(i);
+      hex += (c < 16 ? "0" : "") + c.toString(16).toUpperCase();
+    }
+    return hex;
+  }
+  function hexifyRow(row, pkSet) {
+    var out = {}; for (var k in row) { out[k] = pkSet[k] ? row[k] : strToHex(row[k]); } return out;
+  }
+  // 12 → "12 B", 4321 → "4.2 KB", 1234567 → "1.2 MB"
+  function fmtBytes(n) {
+    if (n == null) return "";
+    if (n < 1024) return n + " B";
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1).replace(/\.0$/, "") + " KB";
+    if (n < 1024 * 1024 * 1024) return (n / 1048576).toFixed(1).replace(/\.0$/, "") + " MB";
+    return (n / 1073741824).toFixed(2) + " GB";
   }
   function parseFiles(fileList, cb) {
     var files = Array.prototype.slice.call(fileList || []).filter(function (f) { return /\.csv$/i.test(f.name); });
@@ -81,7 +135,10 @@
         ${loaded
           ? html`
             <div class="drop__name" style=${{ fontFamily: "var(--sans)" }}>${t("drop.filesLoaded", { n: files.length })}</div>
-            <div class="colchips">${files.map(function (f) { return html`<span key=${f.fileName} class="chip">${f.fileName}</span>`; })}</div>`
+            <div class="colchips">${files.map(function (f) {
+              var tip = f.bytes != null ? fmt(f.bytes) + " bytes" + (f.encoding ? " · " + encodingLabel(f.encoding) : "") : null;
+              return html`<span key=${f.fileName} class="chip" title=${tip}>${f.fileName}${f.bytes != null ? html`<span class="chip__size"> · ${fmtBytes(f.bytes)}</span>` : null}${f.encoding ? html`<span class="chip__enc"> · ${encodingLabel(f.encoding)}</span>` : null}</span>`;
+            })}</div>`
           : (over
             ? html`<div class="drop__name" style=${{ fontFamily: "var(--sans)", fontWeight: 500 }}>${t("drop.droppingName")}</div>`
             : html`
@@ -138,9 +195,52 @@
       return html`<span key=${i} class=${cls}>${u.text}</span>`;
     });
   }
+  function hexToBytes(s) {
+    if (!s) return new Uint8Array(0);
+    var n = (s.length / 2) | 0, u = new Uint8Array(n);
+    for (var i = 0; i < n; i++) u[i] = parseInt(s.substr(i * 2, 2), 16);
+    return u;
+  }
+  // byte-string → 표준 인코딩 라벨. BOM 우선, 다음 UTF-8/SJIS/EUC-JP fatal 시도, 폴백은 windows-1252.
+  function byteStringToU8(s) { var u = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
+  function detectEncoding(byteStr) {
+    if (!byteStr) return "ascii";
+    if (byteStr.length >= 3 && byteStr.charCodeAt(0) === 0xEF && byteStr.charCodeAt(1) === 0xBB && byteStr.charCodeAt(2) === 0xBF) return "utf-8";
+    if (byteStr.length >= 2) {
+      var b0 = byteStr.charCodeAt(0), b1 = byteStr.charCodeAt(1);
+      if (b0 === 0xFF && b1 === 0xFE) return "utf-16le";
+      if (b0 === 0xFE && b1 === 0xFF) return "utf-16be";
+    }
+    var hasHigh = false;
+    for (var i = 0; i < byteStr.length; i++) if (byteStr.charCodeAt(i) >= 0x80) { hasHigh = true; break; }
+    if (!hasHigh) return "ascii";
+    var u = byteStringToU8(byteStr);
+    try { new TextDecoder("utf-8", { fatal: true }).decode(u); return "utf-8"; } catch (e) {}
+    try { new TextDecoder("shift_jis", { fatal: true }).decode(u); return "shift_jis"; } catch (e) {}
+    try { new TextDecoder("euc-jp", { fatal: true }).decode(u); return "euc-jp"; } catch (e) {}
+    return "windows-1252";
+  }
+  // 표시용 짧은 라벨
+  function encodingLabel(enc) {
+    if (enc === "shift_jis") return "Shift-JIS";
+    if (enc === "euc-jp") return "EUC-JP";
+    if (enc === "utf-8") return "UTF-8";
+    if (enc === "utf-16le") return "UTF-16LE";
+    if (enc === "utf-16be") return "UTF-16BE";
+    if (enc === "ascii") return "ASCII";
+    if (enc === "windows-1252") return "Win-1252";
+    return enc;
+  }
+  function decodeHex(hexStr, encoding) {
+    var bytes = hexToBytes(hexStr);
+    if (!bytes.length) return "";
+    var enc = encoding === "ascii" ? "utf-8" : (encoding || "utf-8");
+    try { return new TextDecoder(enc, { fatal: false }).decode(bytes); } catch (e) { return ""; }
+  }
   function DiffPair(props) {
     var t = useT();
     var col = props.col, aRow = props.aRow, bRow = props.bRow, byteMode = props.byteMode;
+    var aEncoding = props.aEncoding, bEncoding = props.bEncoding;
     var label = props.label != null ? props.label : col; // 칼럼 피벗에선 레코드 키를 라벨로
     var aVal = aRow && aRow[col] != null ? String(aRow[col]) : "";
     var bVal = bRow && bRow[col] != null ? String(bRow[col]) : "";
@@ -156,18 +256,35 @@
       var d = C.diffUnits(aVal, bVal, byteMode);
       aNode = html`<${Units} units=${d.a} />`; bNode = html`<${Units} units=${d.b} />`;
     }
+    var aDec = aVal ? decodeHex(aVal, aEncoding) : "";
+    var bDec = bVal ? decodeHex(bVal, bEncoding) : "";
     return html`
-      <div class="diffpair">
-        <div class="diffpair__col"><span class="mono">${label}</span>${differs ? html`<span class="badge badge--mismatch">${t("badge.mismatch")}</span>` : null}</div>
+      <div class="diffpair" data-state=${differs ? "diff" : "match"}>
+        <div class="diffpair__col">
+          <span class="mono">${label}</span>
+          ${differs
+            ? html`<span class="badge badge--mismatch">${t("badge.mismatch")}</span>`
+            : html`<span class="badge badge--match">${t("badge.match")}</span>`}
+        </div>
         <div class="diffpair__sides">
-          <div class="side"><div class="side__label">${t("side.asIs")}</div><div class="side__val">${aNode}</div></div>
-          <div class="side"><div class="side__label">${t("side.toBe")}</div><div class="side__val">${bNode}</div></div>
+          <div class="side">
+            <div class="side__label">${t("side.asIs")}</div>
+            <div class="side__val">${aNode}</div>
+            ${aDec ? html`<div class="side__decoded">${aDec}</div>` : null}
+          </div>
+          <div class="side">
+            <div class="side__label">${t("side.toBe")}</div>
+            <div class="side__val">${bNode}</div>
+            ${bDec ? html`<div class="side__decoded">${bDec}</div>` : null}
+          </div>
         </div>
       </div>`;
   }
   function DetailRow(props) {
     var t = useT();
     var r = props.result, row = props.row, byteMode = props.byteMode;
+    var aEncoding = props.aEncoding, bEncoding = props.bEncoding;
+    var colFilter = props.colFilter || "all"; // "all" 전체 inspected · "diff" 차이 칼럼만
     var ex = useState(false); var open = ex[0], setOpen = ex[1];
     var badge = BADGE[row.status];
     var expandable = row.status === "MATCH" || row.status === "MISMATCH";
@@ -175,7 +292,8 @@
       : row.status === "ONLY_AS_IS" ? t("detail.previewOnlyAsIs")
       : row.status === "ONLY_TO_BE" ? t("detail.previewOnlyToBe") : "";
     var aRow = r.asIsIndex.get(row.key), bRow = r.toBeIndex.get(row.key);
-    var cols = row.status === "MISMATCH" ? row.diffCols : r.inspectedCols;
+    // 'all' = 전체 inspected 칼럼 (일치/불일치 모두) · 'diff' = 차이 칼럼만 (포커스)
+    var cols = colFilter === "diff" ? (row.diffCols || []) : r.inspectedCols;
     return html`
       <div class="detail-row" data-state=${STATE_MAP[row.status]} data-open=${open ? "true" : "false"}>
         <div class=${"detail-row__head" + (expandable ? "" : " detail-row__head--plain")} onClick=${expandable ? function () { setOpen(!open); } : null}>
@@ -187,7 +305,9 @@
           <span class="detail-row__preview">${preview}</span>
         </div>
         ${open && expandable
-          ? html`<div class="detail-row__body">${cols.map(function (col) { return html`<${DiffPair} key=${col} col=${col} aRow=${aRow} bRow=${bRow} byteMode=${byteMode} />`; })}</div>`
+          ? html`<div class="detail-row__body">${cols.length
+              ? cols.map(function (col) { return html`<${DiffPair} key=${col} col=${col} aRow=${aRow} bRow=${bRow} byteMode=${byteMode} aEncoding=${aEncoding} bEncoding=${bEncoding} />`; })
+              : html`<div class="render-note"><div>${t("drilldown.noColDiff")}</div></div>`}</div>`
           : null}
       </div>`;
   }
@@ -197,7 +317,14 @@
     var t = useT();
     var pair = props.pair, byteMode = props.byteMode, onClose = props.onClose;
     var r = pair.result;
-    var fl = useState("all"); var filter = fl[0], setFilter = fl[1];
+    // 디폴트: 차이가 있으면 '실패만'(바로 문제 확인), 전건 일치면 '전체'(확인 가능하도록)
+    var fl = useState(function () {
+      var p = r.summary.mismatched + r.summary.onlyAsIs + r.summary.onlyToBe;
+      return p > 0 ? "problems" : "all";
+    });
+    var filter = fl[0], setFilter = fl[1];
+    // 펼친 레코드 본문에서 보여줄 칼럼: 전체 inspected vs 차이 칼럼만 (글로벌 토글)
+    var cf = useState("all"); var colFilter = cf[0], setColFilter = cf[1];
     var counts = {
       all: r.summary.total, match: r.summary.matched,
       problems: r.summary.mismatched + r.summary.onlyAsIs + r.summary.onlyToBe
@@ -210,8 +337,8 @@
       });
     }, [r, filter]);
     var shown = filtered.slice(0, RENDER_CAP);
-    // 라벨은 테이블 보드와 통일: 전체 / 실패만 / 통과만
-    var FILTERS = [["all", "board.filterAll"], ["problems", "board.filterFail"], ["match", "board.filterPass"]];
+    // 레코드 필터(전체 레코드 / 실패만 / 통과만) — 보드의 "전체 테이블"과 모호성 분리
+    var FILTERS = [["all", "drilldown.recFilterAll"], ["problems", "drilldown.recFilterFail"], ["match", "drilldown.recFilterPass"]];
     return html`
       <div class="drilldown">
         <header class="drilldown__head">
@@ -226,15 +353,21 @@
               onClick=${function () { onClose(); }}>× ${t("drilldown.close")}</button>` : null}
           </span>
         </header>
-        <div class="filters" role="tablist">
-          ${FILTERS.map(function (x) {
-            return html`<button key=${x[0]} aria-pressed=${filter === x[0]} onClick=${function () { setFilter(x[0]); }}>${t(x[1])} <span class="count">${fmt(counts[x[0]])}</span></button>`;
-          })}
+        <div class="filters-bar">
+          <div class="filters" role="tablist">
+            ${FILTERS.map(function (x) {
+              return html`<button key=${x[0]} aria-pressed=${filter === x[0]} onClick=${function () { setFilter(x[0]); }}>${t(x[1])} <span class="count">${fmt(counts[x[0]])}</span></button>`;
+            })}
+          </div>
+          <div class="filters" role="tablist">
+            <button aria-pressed=${colFilter === "all"} onClick=${function () { setColFilter("all"); }}>${t("drilldown.colFilterAll")}</button>
+            <button aria-pressed=${colFilter === "diff"} onClick=${function () { setColFilter("diff"); }}>${t("drilldown.colFilterDiff")}</button>
+          </div>
         </div>
         <div class="drilldown__rows">
           ${shown.length === 0
             ? html`<div class="render-note"><div>${t("detail.none")}</div></div>`
-            : shown.map(function (row) { return html`<${DetailRow} key=${row.key} result=${r} row=${row} byteMode=${byteMode} />`; })}
+            : shown.map(function (row) { return html`<${DetailRow} key=${row.key} result=${r} row=${row} byteMode=${byteMode} aEncoding=${pair.aEncoding} bEncoding=${pair.bEncoding} colFilter=${colFilter} />`; })}
           ${filtered.length > RENDER_CAP
             ? html`<div class="render-note" style=${{ marginTop: "8px" }}><div>${rich(t("detail.renderNote", { cap: fmt(RENDER_CAP), rest: fmt(filtered.length - RENDER_CAP) }))}</div></div>`
             : null}
@@ -503,6 +636,10 @@
       var excludedSet = ov.excluded || new Set();
       var inspect = common.filter(function (c) { return keyCols.indexOf(c) < 0 && !excludedSet.has(c); });
       var excludedCols = common.filter(function (c) { return keyCols.indexOf(c) < 0 && excludedSet.has(c); });
+      // PK 칼럼은 매칭 키로 그대로 사용. 나머지 셀은 원본 바이트를 무조건 hex로 변환해 비교.
+      var pkSet = {}; keyCols.forEach(function (c) { pkSet[c] = true; });
+      var aRows = a.rows.map(function (r) { return hexifyRow(r, pkSet); });
+      var bRows = b.rows.map(function (r) { return hexifyRow(r, pkSet); });
       var result;
       if (common.length === 0 || inspect.length === 0) {
         result = {
@@ -512,9 +649,9 @@
           configError: common.length === 0 ? "noCommon" : "noInspect"
         };
       } else {
-        result = C.compareData({ asIsRows: a.rows, toBeRows: b.rows, pk: keyCols, inspectCols: inspect, excludedCols: excludedCols });
+        result = C.compareData({ asIsRows: aRows, toBeRows: bRows, pk: keyCols, inspectCols: inspect, excludedCols: excludedCols });
       }
-      return { name: name, common: common, result: result, aCount: (a.rows || []).length, bCount: (b.rows || []).length };
+      return { name: name, common: common, result: result, aCount: (aRows || []).length, bCount: (bRows || []).length, aEncoding: a.encoding, bEncoding: b.encoding };
     });
     var summary = C.batchVerdict(pairs.map(function (x) { return x.result; }), p.onlyAsIs.length + p.onlyToBe.length);
     return { pairs: pairs, onlyAsIs: p.onlyAsIs, onlyToBe: p.onlyToBe, summary: summary };
@@ -524,13 +661,14 @@
   function App() {
     var sLang = useState(function () { return I.detectLang(); });
     var sA = useState([]), sB = useState([]);
-    var sByte = useState(false);
     var sXF = useState(function () { return new Set(); });
     var sRan = useState(false);
     var lang = sLang[0], setLang = sLang[1];
     var aFiles = sA[0], setAFiles = sA[1];
     var bFiles = sB[0], setBFiles = sB[1];
-    var byteMode = sByte[0], setByteMode = sByte[1];
+    // diff 표시는 항상 바이트(hex 페어) 단위 — 셀 hex는 항상 짝수 길이고
+    // byte-faithful 검증에 맞는 자연 단위. (이전엔 문자 단위 옵션을 두었으나 제거.)
+    var byteMode = true;
     var excludedFiles = sXF[0], setExcludedFiles = sXF[1];
     var ran = sRan[0], setRan = sRan[1];
 
@@ -550,13 +688,12 @@
     function pick(setter, fileList) { setRan(false); setExcludedFiles(new Set()); parseFiles(fileList, function (arr) { setter(arr); }); }
     function toggleFile(name) { var nx = new Set(excludedFiles); if (nx.has(name)) nx.delete(name); else nx.add(name); setExcludedFiles(nx); setRan(false); }
     function run() { if (!pairing || !pairing.pairs.length) return; setRan(true); window.scrollTo(0, 0); }
-    function reset() { setAFiles([]); setBFiles([]); setExcludedFiles(new Set()); setByteMode(false); setRan(false); }
+    function reset() { setAFiles([]); setBFiles([]); setExcludedFiles(new Set()); setRan(false); }
 
     var header = html`
       <div class="app__header">
         <div class="app__headtext">
           <h1 class="app__title">${t("app.title")}</h1>
-          <p class="app__subtitle">${rich(t("app.subtitle"))}</p>
         </div>
         <label class="langselect">
           <span>${t("lang.label")}</span>
@@ -590,12 +727,6 @@
             <div class="uploads">
               <${MultiDrop} role=${t("upload.roleAsIs")} subrole=${t("upload.subroleAsIs")} files=${aFiles} onPick=${function (fl) { pick(setAFiles, fl); }} />
               <${MultiDrop} role=${t("upload.roleToBe")} subrole=${t("upload.subroleToBe")} files=${bFiles} onPick=${function (fl) { pick(setBFiles, fl); }} />
-            </div>
-            <div class="field" style=${{ marginTop: "18px" }}>
-              <label class="checkrow">
-                <input type="checkbox" checked=${byteMode} onChange=${function (e) { setByteMode(e.target.checked); }} />
-                <span>${t("config.byteOption")} <span class="muted small">${t("config.byteOptionHint")}</span></span>
-              </label>
             </div>
           </div>
           ${(aFiles.length && bFiles.length) ? html`<${PairingPreview} aFiles=${aFiles} bFiles=${bFiles} excluded=${excludedFiles} onToggle=${toggleFile} />` : null}
