@@ -421,16 +421,22 @@
   }
 
   // ── 정렬 테이블 (한 테이블 = 한 행, 클릭 시 인라인 드릴다운) ──
+  var PAGE_SIZE = 15;
   function BatchTable(props) {
     var t = useT();
     var rows = props.rows, byteMode = props.byteMode, sortKey = props.sortKey, sortDir = props.sortDir, onSort = props.onSort;
     var op = useState(null); var openName = op[0], setOpenName = op[1];
+    var sp = useState(1); var page = sp[0], setPage = sp[1];
     if (!rows.length) return html`<div class="render-note"><div>${t("board.noTables")}</div></div>`;
+    var totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+    var curPage = Math.min(Math.max(1, page), totalPages); // 필터/정렬 변동 시 자동 클램프
+    var startIdx = (curPage - 1) * PAGE_SIZE;
+    var visibleRows = rows.slice(startIdx, startIdx + PAGE_SIZE);
     function aria(k) { return sortKey === k ? (sortDir === "asc" ? "ascending" : "descending") : undefined; }
     function th(k, label, num, title) {
       return html`<th class=${num ? "num" : null} aria-sort=${aria(k)} data-sortable="1" data-tip=${title} onClick=${function () { onSort(k); }}><span>${label}</span></th>`;
     }
-    return html`
+    return html`<${Fragment}>
       <table class="batch-table" role="grid">
         <thead><tr>
           ${th("name", "Table", false, t("th.table"))}
@@ -446,7 +452,7 @@
           <th data-tip=${t("th.excluded")}>Excluded</th>
         </tr></thead>
         <tbody>
-          ${rows.map(function (p) {
+          ${visibleRows.map(function (p) {
             var pass = p.verdict === "PASS";
             var expandable = !p.configError;
             var open = openName === p.name;
@@ -476,7 +482,14 @@
             <//>`;
           })}
         </tbody>
-      </table>`;
+      </table>
+      ${totalPages > 1 ? html`
+        <nav class="pager" aria-label="pagination">
+          <button class="pager__btn" type="button" disabled=${curPage === 1} onClick=${function () { setPage(curPage - 1); }}>← ${t("pager.prev")}</button>
+          <span class="pager__info">${t("pager.page", { cur: curPage, total: totalPages })}</span>
+          <button class="pager__btn" type="button" disabled=${curPage === totalPages} onClick=${function () { setPage(curPage + 1); }}>${t("pager.next")} →</button>
+        </nav>` : null}
+    <//>`;
   }
 
   // ── 대시보드 보드 (필터 + 정렬 테이블 + 미매칭) ──

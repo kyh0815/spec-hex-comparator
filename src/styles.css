@@ -560,7 +560,9 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   font-size: 13.5px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  flex-wrap: wrap;       /* 칩이 많을 때 자연스럽게 다음 줄로 */
+  gap: 6px;              /* 행간/열간 모두 6px */
+  min-width: 0;          /* 부모 그리드/플렉스 내에서 줄임표·줄바꿈 활성화 */
 }
 .verdict__reason .small::before {
   content: "";
@@ -686,6 +688,38 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   flex-wrap: wrap;
 }
 .filters-bar .filters { margin-bottom: 0; }
+
+/* ── Pagination (배치 테이블 하단) ── */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin: 14px 0 4px;
+}
+.pager__btn {
+  appearance: none;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+  color: var(--ink-2);
+  padding: 6px 14px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
+}
+.pager__btn:hover { border-color: var(--line-3); background: var(--bg-sunken); color: var(--ink); }
+.pager__btn:disabled { color: var(--ink-4); cursor: not-allowed; opacity: 0.55; }
+.pager__btn:disabled:hover { border-color: var(--line-2); background: var(--surface); color: var(--ink-4); }
+.pager__info {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  min-width: 110px;
+  text-align: center;
+}
 
 .detail-row {
   background: var(--surface);

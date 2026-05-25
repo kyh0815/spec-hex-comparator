@@ -568,7 +568,9 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   font-size: 13.5px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  flex-wrap: wrap;       /* 칩이 많을 때 자연스럽게 다음 줄로 */
+  gap: 6px;              /* 행간/열간 모두 6px */
+  min-width: 0;          /* 부모 그리드/플렉스 내에서 줄임표·줄바꿈 활성화 */
 }
 .verdict__reason .small::before {
   content: "";
@@ -694,6 +696,38 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   flex-wrap: wrap;
 }
 .filters-bar .filters { margin-bottom: 0; }
+
+/* ── Pagination (배치 테이블 하단) ── */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin: 14px 0 4px;
+}
+.pager__btn {
+  appearance: none;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+  color: var(--ink-2);
+  padding: 6px 14px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
+}
+.pager__btn:hover { border-color: var(--line-3); background: var(--bg-sunken); color: var(--ink); }
+.pager__btn:disabled { color: var(--ink-4); cursor: not-allowed; opacity: 0.55; }
+.pager__btn:disabled:hover { border-color: var(--line-2); background: var(--surface); color: var(--ink-4); }
+.pager__info {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  min-width: 110px;
+  text-align: center;
+}
 
 .detail-row {
   background: var(--surface);
@@ -2254,6 +2288,9 @@ License: MIT
       "drilldown.missTitle": "누락 · 초과 레코드",
       "drilldown.metaLbl": "As-Is / To-Be",
       "board.noTables": "해당 필터에 매칭되는 테이블이 없습니다.",
+      "pager.prev": "이전",
+      "pager.next": "다음",
+      "pager.page": "페이지 {cur} / {total}",
       "board.unpairedAsIs": "As-Is에만 존재하는 파일 **{n}개**",
       "board.unpairedToBe": "To-Be에만 존재하는 파일 **{n}개**",
       "th.table": "테이블명",
@@ -2423,6 +2460,9 @@ License: MIT
       "drilldown.missTitle": "欠落・余剰レコード",
       "drilldown.metaLbl": "As-Is / To-Be",
       "board.noTables": "該当するテーブルがありません。",
+      "pager.prev": "前へ",
+      "pager.next": "次へ",
+      "pager.page": "ページ {cur} / {total}",
       "board.unpairedAsIs": "As-Isにのみ存在するファイル **{n}個**",
       "board.unpairedToBe": "To-Beにのみ存在するファイル **{n}個**",
       "th.table": "テーブル名",
@@ -2592,6 +2632,9 @@ License: MIT
       "drilldown.missTitle": "Missing · extra records",
       "drilldown.metaLbl": "As-Is / To-Be",
       "board.noTables": "No tables match this filter.",
+      "pager.prev": "Prev",
+      "pager.next": "Next",
+      "pager.page": "Page {cur} of {total}",
       "board.unpairedAsIs": "**{n}** files only in As-Is",
       "board.unpairedToBe": "**{n}** files only in To-Be",
       "th.table": "Table name",
@@ -3094,16 +3137,22 @@ License: MIT
   }
 
   // ── 정렬 테이블 (한 테이블 = 한 행, 클릭 시 인라인 드릴다운) ──
+  var PAGE_SIZE = 15;
   function BatchTable(props) {
     var t = useT();
     var rows = props.rows, byteMode = props.byteMode, sortKey = props.sortKey, sortDir = props.sortDir, onSort = props.onSort;
     var op = useState(null); var openName = op[0], setOpenName = op[1];
+    var sp = useState(1); var page = sp[0], setPage = sp[1];
     if (!rows.length) return html`<div class="render-note"><div>${t("board.noTables")}</div></div>`;
+    var totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+    var curPage = Math.min(Math.max(1, page), totalPages); // 필터/정렬 변동 시 자동 클램프
+    var startIdx = (curPage - 1) * PAGE_SIZE;
+    var visibleRows = rows.slice(startIdx, startIdx + PAGE_SIZE);
     function aria(k) { return sortKey === k ? (sortDir === "asc" ? "ascending" : "descending") : undefined; }
     function th(k, label, num, title) {
       return html`<th class=${num ? "num" : null} aria-sort=${aria(k)} data-sortable="1" data-tip=${title} onClick=${function () { onSort(k); }}><span>${label}</span></th>`;
     }
-    return html`
+    return html`<${Fragment}>
       <table class="batch-table" role="grid">
         <thead><tr>
           ${th("name", "Table", false, t("th.table"))}
@@ -3119,7 +3168,7 @@ License: MIT
           <th data-tip=${t("th.excluded")}>Excluded</th>
         </tr></thead>
         <tbody>
-          ${rows.map(function (p) {
+          ${visibleRows.map(function (p) {
             var pass = p.verdict === "PASS";
             var expandable = !p.configError;
             var open = openName === p.name;
@@ -3149,7 +3198,14 @@ License: MIT
             <//>`;
           })}
         </tbody>
-      </table>`;
+      </table>
+      ${totalPages > 1 ? html`
+        <nav class="pager" aria-label="pagination">
+          <button class="pager__btn" type="button" disabled=${curPage === 1} onClick=${function () { setPage(curPage - 1); }}>← ${t("pager.prev")}</button>
+          <span class="pager__info">${t("pager.page", { cur: curPage, total: totalPages })}</span>
+          <button class="pager__btn" type="button" disabled=${curPage === totalPages} onClick=${function () { setPage(curPage + 1); }}>${t("pager.next")} →</button>
+        </nav>` : null}
+    <//>`;
   }
 
   // ── 대시보드 보드 (필터 + 정렬 테이블 + 미매칭) ──
