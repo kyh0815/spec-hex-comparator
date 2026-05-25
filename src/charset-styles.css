@@ -383,6 +383,80 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
 .drop__hint { color: var(--ink-3); font-size: 13px; }
 .drop input[type="file"] { display: none; }
 
+/* ── Convert settings card (file/folder modes) ───────────────── */
+.convertbox {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: end;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--surface);
+  margin-bottom: 16px;
+}
+.convertbox__fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  align-items: center;
+}
+.convertbox__title {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-3);
+  text-transform: none;
+  letter-spacing: 0.01em;
+}
+.convertbox__action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+@media (max-width: 720px) {
+  .convertbox { grid-template-columns: 1fr; align-items: stretch; }
+  .convertbox__action { justify-content: flex-end; }
+}
+
+.convert-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--ink-4);
+  font-size: 13px;
+  background: var(--bg-sunken);
+  border: 1px dashed var(--line-2);
+  border-radius: var(--r);
+}
+
+/* Result card after a successful Convert in file mode. Subtle success
+ * tint, focused on the download action. */
+.resultbox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--pass-border);
+  background: var(--pass-soft);
+  border-radius: var(--r);
+  margin-top: 12px;
+}
+.resultbox__info { min-width: 0; flex: 1; }
+.resultbox__name {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.resultbox__meta { color: var(--ink-3); font-size: 12px; margin-top: 2px; }
+
 /* ── Options bar (folder mode) ───────────────────────────────── */
 .optsbar {
   display: flex;
@@ -445,6 +519,11 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
 }
 .filetable td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .filetable td.actions { text-align: right; }
+.filetable .select {
+  font-size: 12px;
+  padding: 3px 20px 3px 7px;
+  min-width: 102px;
+}
 .filetable .badge {
   display: inline-block;
   padding: 2px 8px;

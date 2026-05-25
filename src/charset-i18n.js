@@ -56,6 +56,10 @@
       "action.swap": "방향 전환",
       "action.encode": "텍스트 → 바이트",
       "action.decode": "바이트 → 텍스트",
+      "action.convert": "변환 실행",
+      "action.convertAll": "일괄 변환 실행",
+      "convert.title": "변환 설정",
+      "convert.note": "변환을 실행하면 결과가 여기에 표시됩니다.",
 
       "stat.byteLen": "바이트 길이",
       "stat.charLen": "문자 수",
@@ -140,6 +144,10 @@
       "action.swap": "方向切替",
       "action.encode": "テキスト → バイト",
       "action.decode": "バイト → テキスト",
+      "action.convert": "変換実行",
+      "action.convertAll": "一括変換実行",
+      "convert.title": "変換設定",
+      "convert.note": "変換を実行すると、ここに結果が表示されます。",
 
       "stat.byteLen": "バイト長",
       "stat.charLen": "文字数",
@@ -224,6 +232,10 @@
       "action.swap": "Swap direction",
       "action.encode": "Text → Bytes",
       "action.decode": "Bytes → Text",
+      "action.convert": "Convert",
+      "action.convertAll": "Convert all",
+      "convert.title": "Conversion settings",
+      "convert.note": "Click Convert to see the result here.",
 
       "stat.byteLen": "Byte length",
       "stat.charLen": "Character count",

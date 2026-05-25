@@ -255,6 +255,60 @@
     return concatBytes(records.concat([cdBuf, eocd]));
   }
 
+  // ── Interpret-as auto-detection ──────────────────────────────
+  // Combines filename hints with content pattern matching to suggest
+  // the file's interpretation. Returns one of: binary | hex | dec | bin | base64.
+  function detectInterpretAs(rawBytes, filename) {
+    if (!rawBytes || !rawBytes.length) return "binary";
+
+    var name = (filename || "").toLowerCase();
+    // 1) Filename hints — strong signal, return immediately.
+    if (/(^|[_.\-])hex(\.|$)/.test(name) || /\.hex$/.test(name)) return "hex";
+    if (/(^|[_.\-])(b64|base64)(\.|$)/.test(name) || /\.b64$|\.base64$/.test(name)) return "base64";
+    if (/(^|[_.\-])(bin|binary)text(\.|$)/.test(name)) return "bin";
+    if (/(^|[_.\-])dec(\.|$)/.test(name)) return "dec";
+
+    // 2) Content pattern — sample first 1KB as UTF-8 lossy text.
+    var sample;
+    try {
+      var end = Math.min(rawBytes.length, 1024);
+      sample = new TextDecoder("utf-8", { fatal: false }).decode(rawBytes.subarray(0, end));
+    } catch (e) { return "binary"; }
+
+    var trimmed = sample.trim();
+    if (!trimmed.length) return "binary";
+
+    // Hex: only hex digits + whitespace + optional 0x prefixes, even count.
+    var hexStripped = trimmed.replace(/0x/gi, "").replace(/\s+/g, "");
+    if (hexStripped.length >= 4 && /^[0-9a-fA-F]+$/.test(hexStripped) && hexStripped.length % 2 === 0) {
+      return "hex";
+    }
+
+    // Binary text: 0/1 + whitespace, length multiple of 8.
+    var binStripped = trimmed.replace(/\s+/g, "");
+    if (binStripped.length >= 8 && /^[01]+$/.test(binStripped) && binStripped.length % 8 === 0) {
+      return "bin";
+    }
+
+    // Decimal text: digits + whitespace/commas, each token 0..255.
+    if (/^[0-9\s,]+$/.test(trimmed)) {
+      var tokens = trimmed.split(/[\s,]+/).filter(Boolean);
+      if (tokens.length >= 2 && tokens.every(function (n) {
+        if (!/^\d+$/.test(n)) return false;
+        var x = parseInt(n, 10);
+        return x >= 0 && x <= 255;
+      })) return "dec";
+    }
+
+    // Base64: base64 alphabet + padding, length multiple of 4.
+    var b64Stripped = trimmed.replace(/\s+/g, "");
+    if (b64Stripped.length >= 8 && /^[A-Za-z0-9+/]+=*$/.test(b64Stripped) && b64Stripped.length % 4 === 0) {
+      return "base64";
+    }
+
+    return "binary";
+  }
+
   // ── Interpret raw file bytes ─────────────────────────────────
   // When `interpretAs` is "binary", the file's raw bytes are the bytes
   // to decode. For "hex"/"dec"/"bin"/"base64", the file content is
@@ -347,14 +401,19 @@
       sourceEnc: "auto",                          // encoding of the (interpreted) bytes
       targetEnc: "utf8",                          // re-encode target for download
       outFmt: "hex",                              // how to display bytes
+      converted: false,                           // explicit Convert was clicked
+      decodedText: "",                            // cached decode (only when converted)
+      reEncodedBytes: null,                       // cached re-encode (only when converted)
+      detectedEnc: null,                          // detected encoding of parsed bytes
       error: null
     },
     folder: {
-      files: [],                                  // [{path, file, rawBytes, ok, converted}]
-      interpretAs: "binary",                      // applied uniformly to all files
-      sourceEnc: "auto",
+      // Per-row settings — each file decides its own interpret-as and
+      // source encoding (auto-detected on upload, user-overridable in
+      // the table). Target encoding is folder-level (uniform output).
+      files: [],                                  // [{path, file, rawBytes, interpretAs, sourceEnc, parsedBytes, detectedEj, ok, converted}]
       targetEnc: "utf8",
-      processed: false
+      converted: false                            // explicit ConvertAll was clicked
     }
   };
 
@@ -704,6 +763,33 @@
     return sel;
   }
 
+  function resetFileResult() {
+    var s = state.file;
+    s.converted = false;
+    s.decodedText = "";
+    s.reEncodedBytes = null;
+    s.error = null;
+  }
+
+  function runFileConvert() {
+    var s = state.file;
+    var parsedBytes;
+    try { parsedBytes = interpretFileBytes(s.rawBytes, s.interpretAs); }
+    catch (e) { s.error = "err.parse"; render(); return; }
+    if (!parsedBytes || !parsedBytes.length) { s.error = "err.empty"; render(); return; }
+    try {
+      var dec = decodeBytes(parsedBytes, s.sourceEnc);
+      s.decodedText = dec.text;
+      s.reEncodedBytes = encodeText(dec.text, s.targetEnc);
+      s.converted = true;
+      s.error = null;
+    } catch (e) {
+      s.error = "err.decode";
+      s.converted = false;
+    }
+    render();
+  }
+
   function renderFileMode() {
     var s = state.file;
     var card = el("div", { class: "card" });
@@ -715,7 +801,9 @@
       return card;
     }
 
-    // Derive parsed bytes from raw bytes per current interpretation.
+    // Derive parsed bytes (for preview + detected display) without
+    // committing to a full decode/re-encode. Full conversion only runs
+    // when the user clicks Convert.
     var parsedBytes = null, parseError = null;
     try { parsedBytes = interpretFileBytes(s.rawBytes, s.interpretAs); }
     catch (e) { parsedBytes = null; parseError = true; }
@@ -723,6 +811,7 @@
     if (parsedBytes && parsedBytes.length) {
       try { detected = detectEncoding(parsedBytes); } catch (e) {}
     }
+    s.detectedEnc = detected;
 
     var info = el("div", { class: "fileinfo" }, [
       el("div", { class: "fileinfo__name" }, [
@@ -738,84 +827,58 @@
       el("button", {
         class: "btn--ghost btn",
         onclick: function () {
-          state.file = { file: null, rawBytes: null, interpretAs: "binary", sourceEnc: "auto", targetEnc: "utf8", outFmt: "hex", error: null };
+          state.file = { file: null, rawBytes: null, interpretAs: "binary", sourceEnc: "auto", targetEnc: "utf8", outFmt: "hex", converted: false, decodedText: "", reEncodedBytes: null, detectedEnc: null, error: null };
           render();
         }
       }, t("action.clear"))
     ]);
 
-    // Top options bar: interpret-as + source encoding + target encoding
-    var interpretSel = renderInterpretSelect(s.interpretAs, function (v) { s.interpretAs = v; render(); });
-    var srcSel = renderEncSelect(s.sourceEnc, true, function (v) { s.sourceEnc = v; render(); });
-    var tgtSel = renderEncSelect(s.targetEnc, false, function (v) { s.targetEnc = v; render(); });
-    var topOpts = el("div", { class: "optsbar" }, [
-      el("div", { class: "field" }, [el("span", { class: "field__label" }, t("field.interpretAs")), interpretSel]),
-      el("div", { class: "field" }, [el("span", { class: "field__label" }, t("field.inputEncoding")), srcSel]),
-      el("div", { class: "field" }, [el("span", { class: "field__label" }, t("field.targetEncoding")), tgtSel])
+    // Convert settings card — explicit Convert button gates the result.
+    // Any setting change invalidates the previous result.
+    var onSettingChange = function () { resetFileResult(); render(); };
+    var interpretSel = renderInterpretSelect(s.interpretAs, function (v) {
+      s.interpretAs = v;
+      redetectFileSource();  // parsed bytes changed → re-detect source
+      onSettingChange();
+    });
+    var srcSel = renderEncSelect(s.sourceEnc, false, function (v) { s.sourceEnc = v; onSettingChange(); });
+    var tgtSel = renderEncSelect(s.targetEnc, false, function (v) { s.targetEnc = v; onSettingChange(); });
+    var convertBtn = el("button", {
+      class: "btn",
+      onclick: runFileConvert,
+      disabled: parseError || !parsedBytes || !parsedBytes.length ? "disabled" : null
+    }, t("action.convert"));
+    var convertBox = el("div", { class: "convertbox" }, [
+      el("div", { class: "convertbox__title" }, t("convert.title")),
+      el("div", { class: "convertbox__fields" }, [
+        el("div", { class: "field" }, [el("span", { class: "field__label" }, t("field.interpretAs")), interpretSel]),
+        el("div", { class: "field" }, [el("span", { class: "field__label" }, t("field.inputEncoding")), srcSel]),
+        el("div", { class: "field" }, [el("span", { class: "field__label" }, t("field.targetEncoding")), tgtSel])
+      ]),
+      el("div", { class: "convertbox__action" }, [convertBtn])
     ]);
 
-    // Bytes panel (left)
-    var bytesPanel = el("div", { class: "panel" });
-    var fmtSel = renderFmtSelect(s.outFmt, function (v) { s.outFmt = v; render(); });
-    bytesPanel.appendChild(el("div", { class: "panel__head" }, [
-      el("div", { class: "panel__title" }, t("result.bytes")),
-      el("div", { class: "panel__opts" }, [
-        el("div", { class: "field" }, [el("span", { class: "field__label" }, t("field.format")), fmtSel])
-      ])
-    ]));
-    var bytesPreview = el("textarea", { class: "ta", readonly: "true", spellcheck: "false" });
-    bytesPreview.value = parsedBytes ? formatBytes(parsedBytes, s.outFmt) : "";
-    bytesPanel.appendChild(el("div", { class: "panel__body" }, [bytesPreview]));
-    bytesPanel.appendChild(el("div", { class: "panel__footer" }, [
-      el("div", { class: "panel__stats" }, [
-        el("span", { class: "small muted" }, [t("stat.byteLen"), " ", el("b", null, String(parsedBytes ? parsedBytes.length : 0))])
-      ]),
-      el("div", { class: "panel__actions" }, [
-        el("button", { class: "btn--ghost btn", onclick: function (e) { copyToClipboard(bytesPreview.value, e.currentTarget); } }, t("action.copy")),
-        el("button", {
-          class: "btn--ghost btn",
-          onclick: function () { if (parsedBytes) download(parsedBytes, s.file.name + ".bin"); }
-        }, t("action.download"))
-      ])
-    ]));
-
-    // Text panel (right)
-    var decoded = "";
-    var reEncoded = null;
-    var decodeFailed = false;
-    try {
-      if (parsedBytes && parsedBytes.length) {
-        var dec = decodeBytes(parsedBytes, s.sourceEnc);
-        decoded = dec.text;
-        reEncoded = encodeText(decoded, s.targetEnc);
-      }
-    } catch (e) { decodeFailed = true; }
-    var textPreview = el("textarea", { class: "ta ta--text", readonly: "true", spellcheck: "false" });
-    textPreview.value = decoded;
-    var textPanel = el("div", { class: "panel" });
-    textPanel.appendChild(el("div", { class: "panel__head" }, [
-      el("div", { class: "panel__title" }, t("result.decoded"))
-    ]));
-    textPanel.appendChild(el("div", { class: "panel__body" }, [textPreview]));
-    textPanel.appendChild(el("div", { class: "panel__footer" }, [
-      el("div", { class: "panel__stats" }, [
-        el("span", { class: "small muted" }, [t("stat.charLen"), " ", el("b", null, String(charLen(decoded)))]),
-        el("span", { class: "small muted" }, [t("stat.byteLen"), " ", el("b", null, String(reEncoded ? reEncoded.length : 0))])
-      ]),
-      el("div", { class: "panel__actions" }, [
-        el("button", { class: "btn--ghost btn", onclick: function (e) { copyToClipboard(decoded, e.currentTarget); } }, t("action.copy")),
-        el("button", {
-          class: "btn--ghost btn",
-          onclick: function () { if (reEncoded) download(reEncoded, suggestFileName(s.file.name, s.targetEnc)); }
-        }, t("action.download"))
-      ])
-    ]));
-
     card.appendChild(info);
-    card.appendChild(topOpts);
+    card.appendChild(convertBox);
     if (parseError) card.appendChild(el("div", { class: "error" }, t("err.parse")));
-    else if (decodeFailed) card.appendChild(el("div", { class: "error" }, t("err.decode")));
-    card.appendChild(el("div", { class: "split" }, [bytesPanel, textPanel]));
+    else if (s.error) card.appendChild(el("div", { class: "error" }, t(s.error)));
+
+    // After Convert: present a single result row focused on download.
+    // No text/bytes preview — the user downloads and inspects the file
+    // externally to preserve the original format (CSV, txt, etc.).
+    if (s.converted && s.reEncodedBytes) {
+      var outName = suggestFileName(s.file.name, s.targetEnc);
+      card.appendChild(el("div", { class: "resultbox" }, [
+        el("div", { class: "resultbox__info" }, [
+          el("div", { class: "resultbox__name" }, outName),
+          el("div", { class: "resultbox__meta" }, fmtBytes(s.reEncodedBytes.length))
+        ]),
+        el("button", {
+          class: "btn",
+          onclick: function () { download(s.reEncodedBytes, outName); }
+        }, t("action.download"))
+      ]));
+    }
     return card;
   }
 
@@ -823,9 +886,17 @@
     if (!file) return;
     var s = state.file;
     s.file = file; s.rawBytes = null; s.error = null;
+    s.converted = false; s.decodedText = ""; s.reEncodedBytes = null;
     var reader = new FileReader();
     reader.onload = function () {
       s.rawBytes = new Uint8Array(reader.result);
+      // Smart interpret-as detection (filename hints + content patterns),
+      // then source-encoding detection on the resulting parsed bytes.
+      try {
+        s.interpretAs = detectInterpretAs(s.rawBytes, s.file && s.file.name);
+        var parsed = interpretFileBytes(s.rawBytes, s.interpretAs);
+        if (parsed && parsed.length) s.sourceEnc = ejToId(detectEncoding(parsed));
+      } catch (e) {}
       render();
     };
     reader.onerror = function () { s.error = "err.decode"; render(); };
@@ -833,7 +904,25 @@
     render();
   }
 
+  // Re-detect source encoding from current rawBytes + interpretAs.
+  // Called when the user changes the interpret-as select so the source
+  // encoding stays in sync with what's actually being parsed.
+  function redetectFileSource() {
+    var s = state.file;
+    if (!s.rawBytes) return;
+    try {
+      var parsed = interpretFileBytes(s.rawBytes, s.interpretAs);
+      if (parsed && parsed.length) s.sourceEnc = ejToId(detectEncoding(parsed));
+    } catch (e) {}
+  }
+
   // ── Mode 3: Folder ──────────────────────────────────────────
+  function resetFolderResult() {
+    var s = state.folder;
+    s.converted = false;
+    s.files.forEach(function (r) { r.converted = null; r.ok = false; });
+  }
+
   function renderFolderMode() {
     var s = state.folder;
     var card = el("div", { class: "card" });
@@ -845,68 +934,113 @@
       return card;
     }
 
-    var opts = el("div", { class: "optsbar" }, [
-      el("div", { class: "field" }, [
-        el("span", { class: "field__label" }, t("field.interpretAs")),
-        renderInterpretSelect(s.interpretAs, function (v) { s.interpretAs = v; processFolder(); })
+    var onSettingChange = function () { resetFolderResult(); render(); };
+
+    // Top: target encoding (folder-level) + Convert all button.
+    // Per-row interpret-as and source encoding live in the table.
+    var convertBtn = el("button", { class: "btn", onclick: runFolderConvert }, t("action.convertAll"));
+    var convertBox = el("div", { class: "convertbox" }, [
+      el("div", { class: "convertbox__title" }, t("convert.title")),
+      el("div", { class: "convertbox__fields" }, [
+        el("div", { class: "field" }, [
+          el("span", { class: "field__label" }, t("field.targetEncoding")),
+          renderEncSelect(s.targetEnc, false, function (v) { s.targetEnc = v; onSettingChange(); })
+        ]),
+        el("span", { class: "optsbar__spacer" }),
+        el("span", { class: "small muted" }, [
+          t("stat.fileCount"), ": ", el("b", null, String(s.files.length))
+        ])
       ]),
-      el("div", { class: "field" }, [
-        el("span", { class: "field__label" }, t("field.inputEncoding")),
-        renderEncSelect(s.sourceEnc, true, function (v) { s.sourceEnc = v; processFolder(); })
-      ]),
-      el("div", { class: "field" }, [
-        el("span", { class: "field__label" }, t("field.targetEncoding")),
-        renderEncSelect(s.targetEnc, false, function (v) { s.targetEnc = v; processFolder(); })
-      ]),
-      el("span", { class: "optsbar__spacer" }),
-      el("span", { class: "small muted" }, [
-        t("stat.fileCount"), ": ", el("b", null, String(s.files.length))
-      ])
+      el("div", { class: "convertbox__action" }, [convertBtn])
     ]);
+
+    var clearBtn = el("button", {
+      class: "btn btn--secondary",
+      onclick: function () { state.folder = { files: [], targetEnc: "utf8", converted: false }; render(); }
+    }, t("action.clear"));
     var actions = el("div", { class: "btnrow", style: { margin: "0 0 12px 0" } }, [
-      el("button", { class: "btn", onclick: downloadFolderZip }, t("file.action.downloadAll")),
       el("button", {
-        class: "btn btn--secondary",
-        onclick: function () { state.folder = { files: [], interpretAs: "binary", sourceEnc: "auto", targetEnc: "utf8", processed: false }; render(); }
-      }, t("action.clear"))
+        class: "btn",
+        onclick: downloadFolderZip,
+        disabled: s.converted ? null : "disabled"
+      }, t("file.action.downloadAll")),
+      clearBtn
     ]);
-    card.appendChild(opts);
+
+    card.appendChild(convertBox);
     card.appendChild(actions);
     card.appendChild(el("div", { class: "tablewrap" }, [renderFolderTable(s)]));
     return card;
   }
 
+  // Re-detect a single row's source encoding from its current interpret-as.
+  function redetectRowSource(row) {
+    try {
+      var parsed = interpretFileBytes(row.rawBytes, row.interpretAs);
+      row.parsedBytes = parsed;
+      if (parsed && parsed.length) {
+        row.detectedEj = detectEncoding(parsed);
+        row.sourceEnc = ejToId(row.detectedEj);
+      } else {
+        row.detectedEj = null;
+      }
+    } catch (e) { row.parsedBytes = null; row.detectedEj = null; }
+  }
+
   function renderFolderTable(s) {
     var table = el("table", { class: "filetable" });
-    var thead = el("thead", null, el("tr", null, [
+    var headCells = [
       el("th", null, t("file.name")),
       el("th", { class: "num" }, t("file.size")),
-      el("th", null, t("field.detected")),
-      el("th", null, t("file.status")),
-      el("th", { class: "actions" }, "")
-    ]));
+      el("th", null, t("field.interpretAs")),
+      el("th", null, t("field.inputEncoding"))
+    ];
+    if (s.converted) {
+      headCells.push(el("th", null, t("file.status")));
+      headCells.push(el("th", { class: "actions" }, ""));
+    }
+    var thead = el("thead", null, el("tr", null, headCells));
     var tbody = el("tbody");
     s.files.forEach(function (row) {
-      var displaySize = row.parsedBytes ? row.parsedBytes.length : (row.rawBytes ? row.rawBytes.length : 0);
-      var tr = el("tr", null, [
+      // Make sure parsedBytes is current with row.interpretAs (for size display).
+      var parsed;
+      try { parsed = interpretFileBytes(row.rawBytes, row.interpretAs); } catch (e) { parsed = null; }
+      var displaySize = parsed ? parsed.length : (row.rawBytes ? row.rawBytes.length : 0);
+
+      var interpretSel = renderInterpretSelect(row.interpretAs, function (v) {
+        row.interpretAs = v;
+        redetectRowSource(row);
+        resetFolderResult();
+        render();
+      });
+      var srcSel = renderEncSelect(row.sourceEnc, false, function (v) {
+        row.sourceEnc = v;
+        resetFolderResult();
+        render();
+      });
+
+      var cells = [
         el("td", { class: "mono" }, row.path),
         el("td", { class: "num mono" }, fmtBytes(displaySize)),
-        el("td", { class: "mono" }, row.detected ? ejToLabel(row.detected) : "—"),
-        el("td", null,
+        el("td", null, interpretSel),
+        el("td", null, srcSel)
+      ];
+      if (s.converted) {
+        cells.push(el("td", null,
           row.ok
             ? el("span", { class: "badge badge--ok" }, t("file.status.ok"))
             : el("span", { class: "badge badge--fail" }, t("file.status.fail"))
-        ),
-        el("td", { class: "actions" },
+        ));
+        cells.push(el("td", { class: "actions" },
           row.converted
             ? el("button", {
                 class: "btn--ghost btn",
                 onclick: function () { download(row.converted, suggestFileName(row.path, state.folder.targetEnc)); }
               }, t("file.action.downloadOne"))
             : null
-        )
-      ]);
-      tbody.appendChild(tr);
+        ));
+      }
+      tbody.appendChild(el("tr", null, cells));
     });
     table.appendChild(thead);
     table.appendChild(tbody);
@@ -918,37 +1052,51 @@
     var rows = [];
     var s = state.folder;
     s.files = [];
+    s.converted = false;
     if (!pending) { render(); return; }
     files.forEach(function (file, idx) {
       var path = file.webkitRelativePath || file.name;
       var reader = new FileReader();
       reader.onload = function () {
-        rows[idx] = { path: path, file: file, rawBytes: new Uint8Array(reader.result), parsedBytes: null, detected: null, ok: false, converted: null };
+        var raw = new Uint8Array(reader.result);
+        var row = {
+          path: path, file: file, rawBytes: raw,
+          interpretAs: detectInterpretAs(raw, file.name),
+          sourceEnc: "utf8",
+          parsedBytes: null, detectedEj: null,
+          ok: false, converted: null
+        };
+        redetectRowSource(row);
+        rows[idx] = row;
         pending--;
-        if (pending === 0) { s.files = rows.filter(Boolean); processFolder(); }
+        if (pending === 0) { s.files = rows.filter(Boolean); render(); }
       };
       reader.onerror = function () {
-        rows[idx] = { path: path, file: file, rawBytes: new Uint8Array(0), parsedBytes: null, detected: null, ok: false, converted: null };
+        rows[idx] = {
+          path: path, file: file, rawBytes: new Uint8Array(0),
+          interpretAs: "binary", sourceEnc: "utf8",
+          parsedBytes: null, detectedEj: null,
+          ok: false, converted: null
+        };
         pending--;
-        if (pending === 0) { s.files = rows.filter(Boolean); processFolder(); }
+        if (pending === 0) { s.files = rows.filter(Boolean); render(); }
       };
       reader.readAsArrayBuffer(file);
     });
   }
 
-  function processFolder() {
+  function runFolderConvert() {
     var s = state.folder;
     s.files.forEach(function (row) {
       try {
-        row.parsedBytes = interpretFileBytes(row.rawBytes, s.interpretAs);
-        try { row.detected = row.parsedBytes && row.parsedBytes.length ? detectEncoding(row.parsedBytes) : null; } catch (e) { row.detected = null; }
-        var dec = decodeBytes(row.parsedBytes, s.sourceEnc);
-        var enc = encodeText(dec.text, s.targetEnc);
-        row.converted = enc;
+        var parsed = interpretFileBytes(row.rawBytes, row.interpretAs);
+        if (!parsed || !parsed.length) throw new Error("empty");
+        var dec = decodeBytes(parsed, row.sourceEnc);
+        row.converted = encodeText(dec.text, s.targetEnc);
         row.ok = true;
       } catch (e) { row.converted = null; row.ok = false; }
     });
-    s.processed = true;
+    s.converted = true;
     render();
   }
 
@@ -1050,6 +1198,19 @@
       if (ENCS[i].ej === ej) return I.t(state.lang, ENCS[i].label);
     }
     return ej;
+  }
+  // Map encoding-japanese detected name to our short encoding id.
+  // Detection may return names outside ENCS (ASCII, BINARY, UNICODE) —
+  // treat those as UTF-8 since they're all UTF-8-compatible.
+  function ejToId(ej) {
+    if (!ej) return "utf8";
+    if (ej === "UTF8" || ej === "ASCII" || ej === "BINARY" || ej === "UNICODE" || ej === "UTF8N") return "utf8";
+    if (ej === "UTF16BE") return "utf16be";
+    if (ej === "UTF16LE" || ej === "UTF16") return "utf16le";
+    if (ej === "SJIS") return "sjis";
+    if (ej === "EUCJP") return "eucjp";
+    if (ej === "JIS" || ej === "ISO-2022-JP") return "jis";
+    return "utf8";
   }
   function suggestFileName(name, targetEncId) {
     var spec = encById(targetEncId);

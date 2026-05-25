@@ -3579,14 +3579,14 @@ License: MIT
     nav.innerHTML =
       '<div class="sitenav__inner">' +
         '<div class="sitenav__tabs" role="tablist">' +
-          '<a class="sitenav__tab' + (hexActive ? " sitenav__tab--active" : "") + '"' +
-            ' href="./index.html" role="tab" aria-selected="' + (hexActive ? "true" : "false") + '"' +
-            (hexActive ? ' aria-current="page"' : "") +
-            '>' + escapeAttr(d.hex) + '</a>' +
           '<a class="sitenav__tab' + (csActive ? " sitenav__tab--active" : "") + '"' +
             ' href="./charset.html" role="tab" aria-selected="' + (csActive ? "true" : "false") + '"' +
             (csActive ? ' aria-current="page"' : "") +
             '>' + escapeAttr(d.charset) + '</a>' +
+          '<a class="sitenav__tab' + (hexActive ? " sitenav__tab--active" : "") + '"' +
+            ' href="./index.html" role="tab" aria-selected="' + (hexActive ? "true" : "false") + '"' +
+            (hexActive ? ' aria-current="page"' : "") +
+            '>' + escapeAttr(d.hex) + '</a>' +
         '</div>' +
       '</div>';
   }
