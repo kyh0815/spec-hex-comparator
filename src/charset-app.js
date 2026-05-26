@@ -263,67 +263,73 @@
   }
 
   // ── JEF (Fujitsu Japanese EBCDIC) decoder ────────────────────
-  // Phase 1: SBCS-only. Single-byte mapping based on EBCDIC 037 with
-  // the JEF/Fujitsu variant tweaks for Latin/punctuation. Tracks
-  // SO/SI (0x28/0x29) shift bytes; DBCS pairs emit U+FFFD until the
-  // DBCS Kanji table is added (Phase 2).
+  // Phase 2: SBCS + DBCS Kanji via vendor/jef-dbcs.js (IBM-1390 base).
+  //
+  // Two shift modes supported transparently:
+  //   - Implicit (no SO/SI): bytes valid in SBCS table → SBCS; otherwise
+  //     start a DBCS pair. Matches the Fujitsu samples we have.
+  //   - Explicit SO(0x28)/SI(0x29): toggle DBCS mode; bytes inside DBCS
+  //     mode always parsed as pairs regardless of SBCS validity.
+  //
+  // Empty slots in JEF_SBCS = undefined → "not a printable SBCS byte" →
+  // treat as DBCS lead in implicit mode.
+  // Strict SBCS set for Fujitsu JEF implicit-shift mode.
+  // EBCDIC 037 has many printable bytes (¢, ., %, ?, } …) that Fujitsu
+  // reserves as DBCS lead bytes in JEF. We only mark unambiguous SBCS
+  // bytes here; everything else is treated as a DBCS lead.
   var JEF_SBCS = (function () {
     var t = new Array(256);
-    // Default: replacement for unmapped bytes.
-    for (var k = 0; k < 256; k++) t[k] = 0xFFFD;
 
-    // Control chars (mainframe-friendly subset).
+    // Control / line breaks
     t[0x00] = 0x00; t[0x05] = 0x09; t[0x0D] = 0x0D;
-    t[0x15] = 0x0A; t[0x25] = 0x0A;  // NEL/LF — both → LF for CSV friendliness
+    t[0x15] = 0x0A; t[0x25] = 0x0A;  // NEL/LF → LF
 
-    // Space.
-    t[0x40] = 0x20;
+    // Space + minimal punctuation that's safe to keep SBCS.
+    t[0x40] = 0x20;  // space
+    t[0x60] = 0x2D;  // -
+    t[0x6B] = 0x2C;  // ,
+    t[0x6D] = 0x5F;  // _
+    t[0x7A] = 0x3A;  // :
 
-    // Punctuation cluster (EBCDIC 037).
-    var p = {
-      0x4A: 0x00A2, 0x4B: 0x002E, 0x4C: 0x003C, 0x4D: 0x0028, 0x4E: 0x002B, 0x4F: 0x007C,
-      0x50: 0x0026,
-      0x5A: 0x0021, 0x5B: 0x0024, 0x5C: 0x002A, 0x5D: 0x0029, 0x5E: 0x003B, 0x5F: 0x00AC,
-      0x60: 0x002D, 0x61: 0x002F,
-      0x6A: 0x00A6, 0x6B: 0x002C, 0x6C: 0x0025, 0x6D: 0x005F, 0x6E: 0x003E, 0x6F: 0x003F,
-      0x79: 0x0060, 0x7A: 0x003A, 0x7B: 0x0023, 0x7C: 0x0040, 0x7D: 0x0027, 0x7E: 0x003D, 0x7F: 0x0022
-    };
-    Object.keys(p).forEach(function (k) { t[+k] = p[k]; });
+    // Letters A-Z (uppercase only — lowercase ranges overlap with DBCS leads).
+    for (var i = 0; i <= 8; i++) t[0xC1 + i] = 0x41 + i;  // A-I
+    for (var i = 0; i <= 8; i++) t[0xD1 + i] = 0x4A + i;  // J-R
+    for (var i = 0; i <= 7; i++) t[0xE2 + i] = 0x53 + i;  // S-Z
 
-    // Lowercase a-i (0x81-0x89), j-r (0x91-0x99), s-z (0xA2-0xA9).
-    for (var i = 0; i <= 8; i++) t[0x81 + i] = 0x61 + i;
-    for (var i = 0; i <= 8; i++) t[0x91 + i] = 0x6A + i;
-    for (var i = 0; i <= 7; i++) t[0xA2 + i] = 0x73 + i;
-    // Uppercase A-I (0xC1-0xC9), J-R (0xD1-0xD9), S-Z (0xE2-0xE9).
-    for (var i = 0; i <= 8; i++) t[0xC1 + i] = 0x41 + i;
-    for (var i = 0; i <= 8; i++) t[0xD1 + i] = 0x4A + i;
-    for (var i = 0; i <= 7; i++) t[0xE2 + i] = 0x53 + i;
-    // Digits 0-9 (0xF0-0xF9).
+    // Digits 0-9.
     for (var i = 0; i <= 9; i++) t[0xF0 + i] = 0x30 + i;
-
-    // Bracket cluster sometimes present in JEF variant.
-    t[0xBA] = 0x005B;  // [
-    t[0xBB] = 0x005D;  // ]
-    t[0xE0] = 0x005C;  // \
 
     return t;
   })();
 
   function decodeJef(bytes) {
     if (!bytes || !bytes.length) return "";
+    var sbcs = JEF_SBCS;
+    var dbcs = window.JEF_DBCS_MAP;
     var out = "";
-    var dbcs = false;
-    for (var i = 0; i < bytes.length; i++) {
+    var i = 0;
+    var inDbcsMode = false;   // explicit SO/SI state
+    while (i < bytes.length) {
       var b = bytes[i];
-      if (b === 0x28) { dbcs = true; continue; }  // SO
-      if (b === 0x29) { dbcs = false; continue; } // SI
-      if (dbcs) {
-        // Phase 2 will look up the DBCS pair here.
+
+      // Explicit SO/SI handling (some JEF variants).
+      if (b === 0x28) { inDbcsMode = true;  i++; continue; }
+      if (b === 0x29) { inDbcsMode = false; i++; continue; }
+
+      var sb = sbcs[b];
+      var asDbcs = inDbcsMode || sb == null;  // implicit: invalid SBCS → DBCS lead
+      if (!asDbcs) {
+        out += String.fromCharCode(sb);
+        i++;
+      } else if (i + 1 < bytes.length) {
+        var pair = (b << 8) | bytes[i + 1];
+        var u = dbcs && dbcs.get(pair);
+        out += u != null ? String.fromCharCode(u) : "�";
+        i += 2;
+      } else {
         out += "�";
-        if (i + 1 < bytes.length) i++;
-        continue;
+        i++;
       }
-      out += String.fromCharCode(JEF_SBCS[b]);
     }
     return out;
   }

@@ -65,6 +65,7 @@ ${siteNavHtml}
 // ── Page 2: Charset converter ─────────────────────────────────
 {
   const encJp    = read("vendor/encoding-japanese.js");
+  const jefDbcs  = read("vendor/jef-dbcs.js");
   const csI18n   = read("src/charset-i18n.js");
   const csApp    = read("src/charset-app.js");
   const csStyles = read("src/charset-styles.css");
@@ -85,6 +86,7 @@ ${siteNavHtml}
 <div id="root"></div>
 <!-- 모든 의존성 인라인: 폐쇄망/오프라인에서 외부 요청 없이 동작 -->
 <script>${safe(encJp)}</script>
+<script id="jef-dbcs">${safe(jefDbcs)}</script>
 <script id="charset-i18n">${safe(csI18n)}</script>
 <script>${safe(csApp)}</script>
 <script id="sitenav-js">${safe(sitenavJs)}</script>
