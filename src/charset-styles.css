@@ -526,6 +526,10 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
   padding: 3px 20px 3px 7px;
   min-width: 102px;
 }
+
+/* Cap select width inside panel headers so a long label can't push
+ * the head into wrapping (caused JEF label to break the layout). */
+.panel__opts .select { max-width: 132px; }
 .filetable .badge {
   display: inline-block;
   padding: 2px 8px;

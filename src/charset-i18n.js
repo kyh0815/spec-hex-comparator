@@ -47,6 +47,7 @@
       "enc.sjis": "Shift_JIS",
       "enc.eucjp": "EUC-JP",
       "enc.jis": "ISO-2022-JP",
+      "enc.jef": "JEF",
       "enc.auto": "자동 감지",
 
       "action.copy": "복사",
@@ -135,6 +136,7 @@
       "enc.sjis": "Shift_JIS",
       "enc.eucjp": "EUC-JP",
       "enc.jis": "ISO-2022-JP",
+      "enc.jef": "JEF",
       "enc.auto": "自動判定",
 
       "action.copy": "コピー",
@@ -223,6 +225,7 @@
       "enc.sjis": "Shift_JIS",
       "enc.eucjp": "EUC-JP",
       "enc.jis": "ISO-2022-JP",
+      "enc.jef": "JEF",
       "enc.auto": "Auto detect",
 
       "action.copy": "Copy",

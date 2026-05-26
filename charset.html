@@ -534,6 +534,10 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
   padding: 3px 20px 3px 7px;
   min-width: 102px;
 }
+
+/* Cap select width inside panel headers so a long label can't push
+ * the head into wrapping (caused JEF label to break the layout). */
+.panel__opts .select { max-width: 132px; }
 .filetable .badge {
   display: inline-block;
   padding: 2px 8px;
@@ -725,6 +729,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
       "enc.sjis": "Shift_JIS",
       "enc.eucjp": "EUC-JP",
       "enc.jis": "ISO-2022-JP",
+      "enc.jef": "JEF",
       "enc.auto": "자동 감지",
 
       "action.copy": "복사",
@@ -813,6 +818,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
       "enc.sjis": "Shift_JIS",
       "enc.eucjp": "EUC-JP",
       "enc.jis": "ISO-2022-JP",
+      "enc.jef": "JEF",
       "enc.auto": "自動判定",
 
       "action.copy": "コピー",
@@ -901,6 +907,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
       "enc.sjis": "Shift_JIS",
       "enc.eucjp": "EUC-JP",
       "enc.jis": "ISO-2022-JP",
+      "enc.jef": "JEF",
       "enc.auto": "Auto detect",
 
       "action.copy": "Copy",
@@ -1001,7 +1008,9 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
     { id: "utf16be", ej: "UTF16", label: "enc.utf16be", bom: false, utf16: "be" },
     { id: "sjis",    ej: "SJIS",  label: "enc.sjis",    bom: false },
     { id: "eucjp",   ej: "EUCJP", label: "enc.eucjp",   bom: false },
-    { id: "jis",     ej: "JIS",   label: "enc.jis",     bom: false }
+    { id: "jis",     ej: "JIS",   label: "enc.jis",     bom: false },
+    // JEF: Fujitsu Japanese EBCDIC. Decode-only (no re-encode path).
+    { id: "jef",     ej: "JEF",   label: "enc.jef",     bom: false, decodeOnly: true }
   ];
 
   function encById(id) {
@@ -1012,6 +1021,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
   // ── Encoding core: text → bytes ─────────────────────────────
   function encodeText(text, encId) {
     var spec = encById(encId);
+    if (spec.decodeOnly) throw new Error("encode");  // e.g. JEF — no re-encode path
     var unicodeArr;
     try {
       unicodeArr = Encoding.stringToCode(text);
@@ -1036,6 +1046,10 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
 
   // ── Encoding core: bytes → text ─────────────────────────────
   function decodeBytes(bytes, encId) {
+    // JEF: custom decoder (not in encoding-japanese).
+    if (encId === "jef") {
+      return { text: decodeJef(bytes), detected: "JEF" };
+    }
     var spec = encId === "auto" ? null : encById(encId);
     var arr = Array.prototype.slice.call(bytes);
     var from;
@@ -1225,6 +1239,93 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
       u16le(0)
     ));
     return concatBytes(records.concat([cdBuf, eocd]));
+  }
+
+  // ── JEF (Fujitsu Japanese EBCDIC) decoder ────────────────────
+  // Phase 1: SBCS-only. Single-byte mapping based on EBCDIC 037 with
+  // the JEF/Fujitsu variant tweaks for Latin/punctuation. Tracks
+  // SO/SI (0x28/0x29) shift bytes; DBCS pairs emit U+FFFD until the
+  // DBCS Kanji table is added (Phase 2).
+  var JEF_SBCS = (function () {
+    var t = new Array(256);
+    // Default: replacement for unmapped bytes.
+    for (var k = 0; k < 256; k++) t[k] = 0xFFFD;
+
+    // Control chars (mainframe-friendly subset).
+    t[0x00] = 0x00; t[0x05] = 0x09; t[0x0D] = 0x0D;
+    t[0x15] = 0x0A; t[0x25] = 0x0A;  // NEL/LF — both → LF for CSV friendliness
+
+    // Space.
+    t[0x40] = 0x20;
+
+    // Punctuation cluster (EBCDIC 037).
+    var p = {
+      0x4A: 0x00A2, 0x4B: 0x002E, 0x4C: 0x003C, 0x4D: 0x0028, 0x4E: 0x002B, 0x4F: 0x007C,
+      0x50: 0x0026,
+      0x5A: 0x0021, 0x5B: 0x0024, 0x5C: 0x002A, 0x5D: 0x0029, 0x5E: 0x003B, 0x5F: 0x00AC,
+      0x60: 0x002D, 0x61: 0x002F,
+      0x6A: 0x00A6, 0x6B: 0x002C, 0x6C: 0x0025, 0x6D: 0x005F, 0x6E: 0x003E, 0x6F: 0x003F,
+      0x79: 0x0060, 0x7A: 0x003A, 0x7B: 0x0023, 0x7C: 0x0040, 0x7D: 0x0027, 0x7E: 0x003D, 0x7F: 0x0022
+    };
+    Object.keys(p).forEach(function (k) { t[+k] = p[k]; });
+
+    // Lowercase a-i (0x81-0x89), j-r (0x91-0x99), s-z (0xA2-0xA9).
+    for (var i = 0; i <= 8; i++) t[0x81 + i] = 0x61 + i;
+    for (var i = 0; i <= 8; i++) t[0x91 + i] = 0x6A + i;
+    for (var i = 0; i <= 7; i++) t[0xA2 + i] = 0x73 + i;
+    // Uppercase A-I (0xC1-0xC9), J-R (0xD1-0xD9), S-Z (0xE2-0xE9).
+    for (var i = 0; i <= 8; i++) t[0xC1 + i] = 0x41 + i;
+    for (var i = 0; i <= 8; i++) t[0xD1 + i] = 0x4A + i;
+    for (var i = 0; i <= 7; i++) t[0xE2 + i] = 0x53 + i;
+    // Digits 0-9 (0xF0-0xF9).
+    for (var i = 0; i <= 9; i++) t[0xF0 + i] = 0x30 + i;
+
+    // Bracket cluster sometimes present in JEF variant.
+    t[0xBA] = 0x005B;  // [
+    t[0xBB] = 0x005D;  // ]
+    t[0xE0] = 0x005C;  // \
+
+    return t;
+  })();
+
+  function decodeJef(bytes) {
+    if (!bytes || !bytes.length) return "";
+    var out = "";
+    var dbcs = false;
+    for (var i = 0; i < bytes.length; i++) {
+      var b = bytes[i];
+      if (b === 0x28) { dbcs = true; continue; }  // SO
+      if (b === 0x29) { dbcs = false; continue; } // SI
+      if (dbcs) {
+        // Phase 2 will look up the DBCS pair here.
+        out += "�";
+        if (i + 1 < bytes.length) i++;
+        continue;
+      }
+      out += String.fromCharCode(JEF_SBCS[b]);
+    }
+    return out;
+  }
+
+  // ── Heuristics: EBCDIC / JEF source detection ────────────────
+  function fileNameSuggestsJef(name) {
+    if (!name) return false;
+    return /(^|[_.\-])(jef|ebcdic)(\.|$|[_.\-])/i.test(name);
+  }
+  function looksLikeEbcdic(bytes) {
+    if (!bytes || bytes.length < 8) return false;
+    var ebcdic = 0, ascii = 0;
+    var sample = Math.min(bytes.length, 512);
+    for (var i = 0; i < sample; i++) {
+      var b = bytes[i];
+      // EBCDIC letter/digit ranges.
+      if ((b >= 0xC1 && b <= 0xC9) || (b >= 0xD1 && b <= 0xD9) ||
+          (b >= 0xE2 && b <= 0xE9) || (b >= 0xF0 && b <= 0xF9)) ebcdic++;
+      // ASCII letter/digit ranges.
+      if ((b >= 0x30 && b <= 0x39) || (b >= 0x41 && b <= 0x5A) ||
+          (b >= 0x61 && b <= 0x7A)) ascii++;
+    }
+    return ebcdic > ascii && ebcdic >= sample * 0.25;
   }
 
   // ── Interpret-as auto-detection ──────────────────────────────
@@ -1537,8 +1638,9 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
       ])
     ]));
 
-    // Right: readonly bytes preview
-    var encSel = renderEncSelect(e.enc, false, function (v) { e.enc = v; recompute(); });
+    // Right: readonly bytes preview. Output (encode-target) encoding —
+    // JEF excluded since we can't encode TO it.
+    var encSel = renderEncSelect(e.enc, false, function (v) { e.enc = v; recompute(); }, true);
     var fmtSel = renderFmtSelect(e.fmt, function (v) { e.fmt = v; bytesTa.placeholder = placeholderFor(v); recompute(); });
     byteStatRight = el("b", null, "0");
     bytesTa = el("textarea", { class: "ta", readonly: "true", spellcheck: "false", placeholder: placeholderFor(e.fmt) });
@@ -1676,7 +1778,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
     return n;
   }
 
-  function renderEncSelect(value, allowAuto, onchange) {
+  function renderEncSelect(value, allowAuto, onchange, excludeDecodeOnly) {
     var sel = el("select", { class: "select mono", onchange: function (e) { onchange(e.target.value); } });
     if (allowAuto) {
       var optA = el("option", { value: "auto" }, I.t(state.lang, "enc.auto"));
@@ -1684,6 +1786,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
       sel.appendChild(optA);
     }
     ENCS.forEach(function (sp) {
+      if (excludeDecodeOnly && sp.decodeOnly) return;
       var o = el("option", { value: sp.id }, I.t(state.lang, sp.label));
       if (value === sp.id) o.selected = true;
       sel.appendChild(o);
@@ -1814,7 +1917,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
       onSettingChange();
     });
     var srcSel = renderEncSelect(s.sourceEnc, false, function (v) { s.sourceEnc = v; onSettingChange(); });
-    var tgtSel = renderEncSelect(s.targetEnc, false, function (v) { s.targetEnc = v; onSettingChange(); });
+    var tgtSel = renderEncSelect(s.targetEnc, false, function (v) { s.targetEnc = v; onSettingChange(); }, true);
     var convertBtn = el("button", {
       class: "btn",
       onclick: runFileConvert,
@@ -1867,7 +1970,14 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
       try {
         s.interpretAs = detectInterpretAs(s.rawBytes, s.file && s.file.name);
         var parsed = interpretFileBytes(s.rawBytes, s.interpretAs);
-        if (parsed && parsed.length) s.sourceEnc = ejToId(detectEncoding(parsed));
+        var name = s.file && s.file.name;
+        // JEF/EBCDIC takes precedence (filename hint > content heuristic)
+        // since encoding-japanese can't detect EBCDIC at all.
+        if (fileNameSuggestsJef(name) || looksLikeEbcdic(parsed)) {
+          s.sourceEnc = "jef";
+        } else if (parsed && parsed.length) {
+          s.sourceEnc = ejToId(detectEncoding(parsed));
+        }
       } catch (e) {}
       render();
     };
@@ -1916,7 +2026,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
       el("div", { class: "convertbox__fields" }, [
         el("div", { class: "field" }, [
           el("span", { class: "field__label" }, t("field.targetEncoding")),
-          renderEncSelect(s.targetEnc, false, function (v) { s.targetEnc = v; onSettingChange(); })
+          renderEncSelect(s.targetEnc, false, function (v) { s.targetEnc = v; onSettingChange(); }, true)
         ]),
         el("span", { class: "optsbar__spacer" }),
         el("span", { class: "small muted" }, [
@@ -1950,7 +2060,12 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
     try {
       var parsed = interpretFileBytes(row.rawBytes, row.interpretAs);
       row.parsedBytes = parsed;
-      if (parsed && parsed.length) {
+      var name = row.file && row.file.name;
+      // JEF/EBCDIC takes precedence over encoding-japanese detect.
+      if (fileNameSuggestsJef(name) || looksLikeEbcdic(parsed)) {
+        row.sourceEnc = "jef";
+        row.detectedEj = "JEF";
+      } else if (parsed && parsed.length) {
         row.detectedEj = detectEncoding(parsed);
         row.sourceEnc = ejToId(row.detectedEj);
       } else {
